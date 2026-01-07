@@ -52,7 +52,7 @@
   </script>
   
   <template>
-    <div class="min-h-screen bg-gray-600 p-8 font-sans flex flex-col items-center">
+    <div class="min-h-screen bg-white p-8 font-sans flex flex-col items-center">
       
       <div class="w-full max-w-[297mm] bg-white p-4 rounded shadow mb-6 flex gap-4 items-end no-print sticky top-4 z-50">
         <div>

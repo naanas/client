@@ -1,3 +1,8 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Tambahkan ini untuk mengubah background menjadi putih */
+body {
+  background-color: white;
+}
