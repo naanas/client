@@ -3,11 +3,12 @@
   import axios from 'axios';
   
   // --- STYLE VARIABLE ---
+  // Style input standar (dibuat variable biar codingan html gak semrawut)
   const inputClass = "w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-400";
 
   // --- ENV VARIABLE ---
-  // Mengambil URL dari .env
-  const API_URL = import.meta.env.VITE_API_URL;
+  // Mengambil URL dari .env (Local vs Production Vercel)
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
   // --- STATE DATA KARYAWAN ---
   const employee = ref({
@@ -50,11 +51,14 @@
     employee.value.month = start === end ? start : `${start} TO ${end}`;
   };
 
+  // Logic Zoom Preview agar pas di layar (Responsive Scale)
   const calculateScale = () => {
     if (!previewContainer.value) return;
-    const PAPER_WIDTH = 1123; 
-    const PADDING = 64; 
+    const PAPER_WIDTH = 1123; // Lebar kertas A4 Landscape pixel
+    const PADDING = 32; 
+    // Ambil lebar container parent
     const availableWidth = previewContainer.value.clientWidth - PADDING;
+    // Hitung skala (Maksimal 1/100%)
     scale.value = Math.min(1, availableWidth / PAPER_WIDTH);
   };
 
@@ -75,6 +79,7 @@
 
   // --- LIFECYCLE ---
   onMounted(() => {
+    // 1. Auto Set Tanggal (Cutoff tanggal 26 - 25)
     const today = new Date();
     const d = today.getDate();
     const m = today.getMonth();
@@ -93,7 +98,11 @@
     employee.value.periodEnd = end.toISOString().split('T')[0] || '';
     
     updateMonthField();
+
+    // 2. Listener Resize Window
     window.addEventListener('resize', calculateScale);
+    // Trigger sekali di awal
+    setTimeout(calculateScale, 500);
   });
 
   onUnmounted(() => {
@@ -104,23 +113,24 @@
     updateMonthField();
   });
   
-  // --- LOAD PREVIEW ---
+  // --- API CALLS ---
   const loadPreview = async () => {
     isLoading.value = true;
     htmlContent.value = ''; 
     
     try {
-      // MENGGUNAKAN API_URL DARI ENV
       const response = await axios.post(`${API_URL}/api/preview-html`, {
         employee: employee.value,
         tasks: regularTasks.value,
         overtimeTasks: overtimeTasks.value
       });
       htmlContent.value = response.data;
+      
+      // Tunggu DOM update baru hitung scale lagi
       await nextTick();
       calculateScale();
     } catch (error) {
-      alert('Gagal load preview. Pastikan server backend jalan.');
+      alert('Gagal load preview. Pastikan backend jalan dan URL benar.');
       console.error(error);
     } finally {
       isLoading.value = false;
@@ -137,11 +147,11 @@
 </script>
   
 <template>
-  <div class="flex h-screen bg-slate-100 font-sans overflow-hidden">
+  <div class="flex flex-col md:flex-row min-h-screen bg-slate-100 font-sans md:overflow-hidden overflow-auto">
       
-    <aside class="w-96 bg-white border-r border-slate-200 flex flex-col z-20 shadow-xl relative flex-shrink-0">
+    <aside class="w-full md:w-96 bg-white border-b md:border-b-0 md:border-r border-slate-200 flex flex-col z-20 shadow-xl flex-shrink-0 relative">
         
-      <div class="p-6 border-b border-slate-100 flex items-center gap-3">
+      <div class="p-6 border-b border-slate-100 flex items-center gap-3 bg-white sticky top-0 z-30 md:static">
         <div class="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center text-white shadow-lg">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
         </div>
@@ -151,7 +161,7 @@
         </div>
       </div>
   
-      <div class="flex-1 overflow-y-auto p-6 space-y-8">
+      <div class="flex-1 p-6 space-y-8 md:overflow-y-auto">
         
         <div class="space-y-4">
           <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider border-b pb-1">Informasi Karyawan</h3>
@@ -206,7 +216,7 @@
               </button>
               
               <div class="space-y-2">
-                <input v-model="task.date" type="date" :class="inputClass + ' w-36'" title="Tanggal" />
+                <input v-model="task.date" type="date" :class="inputClass + ' w-full md:w-36'" title="Tanggal" />
                 <textarea v-model="task.description" rows="2" placeholder="Deskripsi Pekerjaan" :class="inputClass + ' resize-none'"></textarea>
                 <div class="grid grid-cols-2 gap-2">
                    <div>
@@ -266,7 +276,7 @@
 
       </div>
   
-      <div class="p-4 bg-white border-t border-slate-200">
+      <div class="p-4 bg-white border-t border-slate-200 sticky bottom-0 z-30 md:static">
         <button @click="loadPreview" :disabled="isLoading" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-70 shadow-lg">
           <svg v-if="isLoading" class="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
           <span v-else>Generate Preview</span>
@@ -274,21 +284,24 @@
       </div>
     </aside>
   
-    <main class="flex-1 flex flex-col bg-slate-100/50 min-w-0">
-      <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shadow-sm z-10 sticky top-0">
+    <main class="flex-1 flex flex-col bg-slate-100/50 min-w-0 md:h-screen">
+      <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shadow-sm z-10 sticky top-0">
         <div class="flex items-center gap-3">
-          <span class="text-sm font-semibold text-slate-600">Document Preview</span>
+          <span class="text-sm font-semibold text-slate-600 hidden md:inline">Document Preview</span>
+          <span class="text-sm font-semibold text-slate-600 md:hidden">Preview</span>
           <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded text-[10px] font-bold">ZOOM: {{ Math.round(scale * 100) }}%</span>
         </div>
-        <button @click="printFromIframe" :disabled="!htmlContent" class="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-md transition-all active:scale-95 disabled:opacity-50">Save as PDF</button>
+        <button @click="printFromIframe" :disabled="!htmlContent" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm font-bold rounded-lg shadow-md transition-all active:scale-95 disabled:opacity-50">
+           Save PDF
+        </button>
       </header>
   
-      <div ref="previewContainer" class="flex-1 overflow-hidden p-8 flex justify-center items-start bg-slate-200/50">
+      <div ref="previewContainer" class="flex-1 overflow-hidden p-4 md:p-8 flex justify-center items-start bg-slate-200/50 min-h-[500px]">
         <div v-if="htmlContent" class="relative shadow-2xl transition-transform duration-300 ease-out origin-top" :style="{ transform: `scale(${scale})` }">
           <iframe id="preview-frame" :srcdoc="htmlContent" title="PDF Preview" class="bg-white block" style="width: 1123px; height: 794px; border: none;"></iframe>
         </div>
-        <div v-else class="flex flex-col items-center justify-center h-full text-slate-400 opacity-60">
-           <p>Siap Generate...</p>
+        <div v-else class="flex flex-col items-center justify-center h-full text-slate-400 opacity-60 text-center">
+           <p class="text-sm">Isi form di atas (HP) / samping (PC)<br>lalu klik Generate.</p>
         </div>
       </div>
     </main>
