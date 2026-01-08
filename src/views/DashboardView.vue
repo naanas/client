@@ -8,7 +8,7 @@
       employee, regularTasks, overtimeTasks,
       isDarkMode, isLoading, htmlContent, 
       scale, zoomIn, zoomOut, fitScreen,
-      previewContainer, enhancingId, isAppLoading,
+       enhancingId, isAppLoading,
       assigneeList, fetchAssignees, 
       isSyncing, syncData, 
       enhanceDescription, isWeekend, autoFillLink, toggleDarkMode,
