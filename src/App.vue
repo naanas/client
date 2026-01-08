@@ -2,8 +2,12 @@
   import { ref, onMounted, watch, nextTick, onUnmounted } from 'vue';
   import axios from 'axios';
   
-  // --- STYLE VARIABLE (Pengganti @apply CSS) ---
+  // --- STYLE VARIABLE ---
   const inputClass = "w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-400";
+
+  // --- ENV VARIABLE ---
+  // Mengambil URL dari .env
+  const API_URL = import.meta.env.VITE_API_URL;
 
   // --- STATE DATA KARYAWAN ---
   const employee = ref({
@@ -16,15 +20,14 @@
     squad: 'Squad IT PLATFORM',
     periodStart: '',
     periodEnd: '',
-    month: '' // Field Month (Auto-Fill)
+    month: '' 
   });
 
-  // --- STATE REGULAR TASKS (POIN A) ---
+  // --- STATE TASKS ---
   const regularTasks = ref([
     { date: '', description: '', ticketNumber: '', ticketLink: '' }
   ]);
 
-  // --- STATE OVERTIME (POIN B) ---
   const overtimeTasks = ref([
     { date: '', description: '', duration: 1, ticketLink: '', remarks: '' }
   ]);
@@ -34,7 +37,7 @@
   const previewContainer = ref<HTMLDivElement | null>(null);
   const scale = ref(1);
 
-  // --- HELPER FUNCTIONS ---
+  // --- HELPERS ---
   const getMonthName = (dateStr: string) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
@@ -78,7 +81,6 @@
     const y = today.getFullYear();
     let start, end;
     
-    // Logic Cutoff Tgl 26
     if (d >= 26) {
       start = new Date(y, m, 26);
       end = new Date(y, m + 1, 25);
@@ -87,7 +89,6 @@
       end = new Date(y, m, 25);
     }
     
-    // FIX TYPESCRIPT: Tambahkan fallback "|| ''"
     employee.value.periodStart = start.toISOString().split('T')[0] || '';
     employee.value.periodEnd = end.toISOString().split('T')[0] || '';
     
@@ -109,7 +110,8 @@
     htmlContent.value = ''; 
     
     try {
-      const response = await axios.post('http://localhost:3000/api/preview-html', {
+      // MENGGUNAKAN API_URL DARI ENV
+      const response = await axios.post(`${API_URL}/api/preview-html`, {
         employee: employee.value,
         tasks: regularTasks.value,
         overtimeTasks: overtimeTasks.value
@@ -119,6 +121,7 @@
       calculateScale();
     } catch (error) {
       alert('Gagal load preview. Pastikan server backend jalan.');
+      console.error(error);
     } finally {
       isLoading.value = false;
     }
@@ -204,9 +207,7 @@
               
               <div class="space-y-2">
                 <input v-model="task.date" type="date" :class="inputClass + ' w-36'" title="Tanggal" />
-                
                 <textarea v-model="task.description" rows="2" placeholder="Deskripsi Pekerjaan" :class="inputClass + ' resize-none'"></textarea>
-                
                 <div class="grid grid-cols-2 gap-2">
                    <div>
                        <label class="text-[10px] text-slate-400 font-bold ml-1">No. Tiket (BATB)</label>
