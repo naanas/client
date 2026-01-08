@@ -1,23 +1,41 @@
 <script setup lang="ts">
   import { useTimesheet } from './composables/useTimesheet';
 
-  // Panggil Logic dari Composable
   const {
     employee, regularTasks, overtimeTasks,
     isDarkMode, isLoading, htmlContent, scale, enhancingId,
+    isAppLoading, // <--- Ambil state loading
     enhanceDescription, isWeekend, autoFillLink, toggleDarkMode,
     addRegularRow, removeRegularRow, addOvertimeRow, removeOvertimeRow,
     loadPreview, printFromIframe
   } = useTimesheet();
 
-  // Style Variables (Tetap di sini karena berkaitan dengan tampilan)
   const inputClass = "w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 dark:focus:bg-slate-600 dark:placeholder-slate-500";
   const labelClass = "text-[10px] text-slate-400 font-bold ml-1 dark:text-slate-500";
 </script>
   
 <template>
-  <div class="flex flex-col md:flex-row min-h-screen bg-slate-100 dark:bg-slate-900 font-sans md:overflow-hidden overflow-auto transition-colors duration-300">
+  <div class="flex flex-col md:flex-row min-h-screen bg-slate-100 dark:bg-slate-900 font-sans md:overflow-hidden overflow-auto transition-colors duration-300 relative">
       
+    <Transition name="fade">
+      <div v-if="isAppLoading" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white dark:bg-slate-900 transition-colors duration-300">
+        <div class="mb-4 p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl shadow-xl animate-bounce">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600 dark:text-blue-400">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+            </svg>
+        </div>
+        
+        <h1 class="text-xl font-bold text-slate-700 dark:text-white mb-2 tracking-tight">wkwkwkw Generator</h1>
+        
+        <div class="flex items-center gap-2">
+            <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+            <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse delay-75"></div>
+            <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse delay-150"></div>
+        </div>
+        
+        <p class="mt-4 text-xs text-slate-400 font-medium">Memuat data...</p>
+      </div>
+    </Transition>
     <aside class="w-full md:w-96 bg-white dark:bg-slate-800 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-700 flex flex-col z-20 shadow-xl flex-shrink-0 relative transition-colors duration-300">
         
       <div class="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-white dark:bg-slate-800 sticky top-0 z-30 md:static transition-colors">
@@ -27,7 +45,7 @@
             </div>
             <div>
             <h1 class="font-bold text-slate-800 dark:text-white text-lg leading-tight">Timesheet</h1>
-            <p class="text-xs text-slate-400 font-medium">Auto-Save & AI Ready ✨</p>
+            <p class="text-xs text-slate-400 font-medium">kiw kiw engine</p>
             </div>
         </div>
         <button @click="toggleDarkMode" class="p-2 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-yellow-400 hover:bg-slate-200 dark:hover:bg-slate-600 transition">
@@ -194,4 +212,14 @@
   ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   .dark ::-webkit-scrollbar-thumb { background: #475569; }
   .dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+  /* Animasi Loading Fade Out */
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: opacity 0.5s ease;
+  }
+  .fade-enter-from,
+  .fade-leave-to {
+    opacity: 0;
+  }
 </style>

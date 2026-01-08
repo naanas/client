@@ -1,4 +1,3 @@
-// src/composables/useTimesheet.ts
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import axios from 'axios';
 
@@ -10,6 +9,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export function useTimesheet() {
   // --- STATE ---
+  const isAppLoading = ref(true); // <--- STATE LOADING SCREEN
   const isDarkMode = ref(false);
   const isLoading = ref(false);
   const htmlContent = ref('');
@@ -35,11 +35,10 @@ export function useTimesheet() {
 
   // --- ACTIONS & LOGIC ---
 
-  // 1. AI Logic (FIXED: TypeScript Error solved here)
+  // 1. AI Logic (Manual Request via Axios)
   const enhanceDescription = async (index: number, type: 'regular' | 'overtime') => {
     const targetArray = type === 'regular' ? regularTasks.value : overtimeTasks.value;
     
-    // FIX: Validasi object task terlebih dahulu sebelum akses property
     const task = targetArray[index];
     if (!task) return; 
 
@@ -57,7 +56,6 @@ export function useTimesheet() {
       const response = await axios.post(`${API_URL}/api/enhance-description`, {
         text: originalText
       });
-      // FIX: Update task yang sudah divalidasi
       task.description = response.data.text;
     } catch (error) {
       console.error(error);
@@ -195,6 +193,11 @@ export function useTimesheet() {
     loadData();
     window.addEventListener('resize', calculateScale);
     setTimeout(calculateScale, 500);
+
+    // LOGIC LOADING SCREEN (Delay 1 detik)
+    setTimeout(() => {
+        isAppLoading.value = false;
+    }, 1000);
   });
 
   onUnmounted(() => {
@@ -203,10 +206,10 @@ export function useTimesheet() {
 
   watch([employee, regularTasks, overtimeTasks], () => { saveData(); updateMonthField(); }, { deep: true });
 
-  // Return semua yang dibutuhkan Template
   return {
     employee, regularTasks, overtimeTasks,
     isDarkMode, isLoading, htmlContent, scale, previewContainer, enhancingId,
+    isAppLoading, // <--- RETURN STATE INI
     enhanceDescription, isWeekend, autoFillLink, toggleDarkMode,
     addRegularRow, removeRegularRow, addOvertimeRow, removeOvertimeRow,
     loadPreview, printFromIframe
