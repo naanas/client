@@ -10,7 +10,7 @@
       scale, zoomIn, zoomOut, fitScreen,
        enhancingId, isAppLoading,
       assigneeList, fetchAssignees, 
-      isSyncing, syncData, 
+      isSyncing, isRefreshing, syncData, // <--- Destructure state baru
       enhanceDescription, isWeekend, autoFillLink, toggleDarkMode,
       addRegularRow, removeRegularRow, addOvertimeRow, removeOvertimeRow,
       loadPreview, printFromIframe
@@ -65,13 +65,32 @@
                         <div class="space-y-1">
                             <div class="flex justify-between items-center">
                                 <label class="text-[10px] font-bold text-slate-400 dark:text-slate-500">NAMA ASSIGNEE (Dari DB)</label>
+                                
                                 <div class="flex gap-2">
-                                    <button @click="syncData" :disabled="isSyncing" class="text-[9px] text-green-600 hover:text-green-700 font-bold flex items-center gap-1 disabled:opacity-50 transition-all active:scale-95">
-                                        <span v-if="isSyncing" class="animate-spin">↻</span>
+                                    <button 
+                                        @click="syncData" 
+                                        :disabled="isSyncing" 
+                                        class="text-[9px] font-bold flex items-center gap-1 disabled:opacity-50 transition-all active:scale-95"
+                                        :class="isSyncing ? 'text-green-500 cursor-wait' : 'text-green-600 hover:text-green-700'"
+                                    >
+                                        <svg v-if="isSyncing" class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
                                         <span v-else>⬇</span>
                                         {{ isSyncing ? 'Syncing...' : 'Sync DB' }}
                                     </button>
-                                    <button @click="fetchAssignees" class="text-[9px] text-blue-500 hover:underline">Refresh List</button>
+                                    
+                                    <button 
+                                        @click="fetchAssignees" 
+                                        :disabled="isRefreshing"
+                                        class="text-[9px] text-blue-500 hover:underline flex items-center gap-1"
+                                    >
+                                        <svg v-if="isRefreshing" class="animate-spin h-3 w-3 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                        </svg>
+                                        {{ isRefreshing ? 'Loading...' : 'Refresh List' }}
+                                    </button>
                                 </div>
                             </div>
     
@@ -116,7 +135,25 @@
                             <button @click="removeRegularRow(index)" class="absolute top-2 right-2 text-slate-300 hover:text-red-500 dark:hover:text-red-400 transition"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
                             <div class="space-y-2">
                                 <div><label v-if="isWeekend(task.date)" class="text-[9px] text-red-500 font-bold mb-1">⚠️ Weekend</label><input v-model="task.date" type="date" :class="[inputClass, 'w-full md:w-36', isWeekend(task.date) ? 'text-red-600 font-semibold dark:text-red-400' : '']" /></div>
-                                <div class="relative"><textarea v-model="task.description" rows="2" placeholder="Deskripsi" :class="inputClass + ' resize-none pr-8'"></textarea><button @click="enhanceDescription(index, 'regular')" class="absolute top-2 right-2 text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 transition" :disabled="enhancingId === `regular-${index}`">✨</button></div>
+                                
+                                <div class="relative">
+                                    <textarea 
+                                        v-model="task.description" 
+                                        rows="2" 
+                                        placeholder="Deskripsi" 
+                                        :class="[
+                                            inputClass, 
+                                            'resize-none pr-8',
+                                            enhancingId === `regular-${index}` ? 'animate-pulse border-purple-400 ring-1 ring-purple-400' : ''
+                                        ]"
+                                    ></textarea>
+                                    
+                                    <button @click="enhanceDescription(index, 'regular')" class="absolute top-2 right-2 text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 transition p-1" :disabled="enhancingId === `regular-${index}`" title="Perbaiki Bahasa dengan AI">
+                                        <svg v-if="enhancingId === `regular-${index}`" class="animate-spin h-4 w-4 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                        <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/></svg>
+                                    </button>
+                                </div>
+    
                                 <div class="grid grid-cols-2 gap-2"><div><label :class="labelClass">No. Tiket</label><input v-model="task.ticketNumber" @input="autoFillLink(task)" type="text" :class="inputClass" /></div><div><label :class="labelClass">Link JIRA</label><input v-model="task.ticketLink" type="text" :class="inputClass" /></div></div>
                             </div>
                         </div>
@@ -137,7 +174,25 @@
                             <button @click="removeOvertimeRow(index)" class="absolute top-2 right-2 text-slate-300 hover:text-red-500 dark:hover:text-red-400 transition"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
                             <div class="space-y-2">
                                 <div class="flex gap-2"><div class="w-2/3"><label v-if="isWeekend(task.date)" class="text-[9px] text-red-500 font-bold mb-1 ml-1">⚠️ Weekend</label><input v-model="task.date" type="date" :class="[inputClass, isWeekend(task.date) ? 'text-red-600 font-semibold dark:text-red-400' : '']" /></div><div class="w-1/3"><input v-model="task.duration" type="number" step="0.5" :class="inputClass + ' text-center'" placeholder="Jam" /></div></div>
-                                <div class="relative"><textarea v-model="task.description" rows="2" placeholder="Deskripsi Lembur" :class="inputClass + ' resize-none pr-8'"></textarea><button @click="enhanceDescription(index, 'overtime')" class="absolute top-2 right-2 text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 transition" :disabled="enhancingId === `overtime-${index}`">✨</button></div>
+                                
+                                <div class="relative">
+                                    <textarea 
+                                        v-model="task.description" 
+                                        rows="2" 
+                                        placeholder="Deskripsi Lembur" 
+                                        :class="[
+                                            inputClass, 
+                                            'resize-none pr-8',
+                                            enhancingId === `overtime-${index}` ? 'animate-pulse border-purple-400 ring-1 ring-purple-400' : ''
+                                        ]"
+                                    ></textarea>
+                                    
+                                    <button @click="enhanceDescription(index, 'overtime')" class="absolute top-2 right-2 text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 transition p-1" :disabled="enhancingId === `overtime-${index}`" title="Perbaiki Bahasa dengan AI">
+                                        <svg v-if="enhancingId === `overtime-${index}`" class="animate-spin h-4 w-4 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                        <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/></svg>
+                                    </button>
+                                </div>
+    
                                 <input v-model="task.remarks" type="text" placeholder="No. Surat Tugas" :class="inputClass" />
                             </div>
                         </div>

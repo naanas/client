@@ -10,13 +10,14 @@ export function useTimesheet() {
   // App States
   const isAppLoading = ref(true);
   const isDarkMode = ref(false);
-  const isLoading = ref(false); // Untuk generate preview
-  const isSyncing = ref(false); // Untuk tombol Sync DB
+  const isLoading = ref(false); // Generate Preview
+  const isSyncing = ref(false); // Sync DB
+  const isRefreshing = ref(false); // Refresh List Nama <--- STATE BARU
   
   const htmlContent = ref('');
   const scale = ref(0.6);
   const previewContainer = ref<HTMLDivElement | null>(null);
-  const enhancingId = ref<string | null>(null);
+  const enhancingId = ref<string | null>(null); // AI Loading State
 
   // Data States
   const assigneeList = ref<string[]>([]);
@@ -40,6 +41,7 @@ export function useTimesheet() {
 
   // 1. SYNC DATA (Google Sheet -> DB Supabase)
   const syncData = async () => {
+    if (isSyncing.value) return; // Prevent double click
     isSyncing.value = true;
     try {
         const { data } = await axios.post(`${API_URL}/api/sync`);
@@ -50,7 +52,7 @@ export function useTimesheet() {
             alert('info: Data database sudah paling update.');
         }
         
-        // Refresh list nama setelah sync selesai
+        // Auto refresh list setelah sync
         await fetchAssignees();
 
     } catch (e: any) {
@@ -63,11 +65,15 @@ export function useTimesheet() {
 
   // 2. FETCH ASSIGNEES (Dari DB Supabase)
   const fetchAssignees = async () => {
+    isRefreshing.value = true; // Start Animation
     try {
         const { data } = await axios.get(`${API_URL}/api/assignees`);
         assigneeList.value = data;
     } catch (error) {
         console.error("Gagal load assignee:", error);
+    } finally {
+        // Kasih delay dikit biar animasinya kelihatan (UX)
+        setTimeout(() => { isRefreshing.value = false; }, 500);
     }
   };
 
@@ -77,15 +83,15 @@ export function useTimesheet() {
     const task = targetArray[index];
     if (!task || !task.description) return alert("Isi deskripsi dulu");
 
-    enhancingId.value = `${type}-${index}`;
+    enhancingId.value = `${type}-${index}`; // Start Animation
     try {
       const response = await axios.post(`${API_URL}/api/enhance-description`, { text: task.description });
       task.description = response.data.text;
     } catch (error) { alert("AI Error"); } 
-    finally { enhancingId.value = null; }
+    finally { enhancingId.value = null; } // Stop Animation
   };
 
-  // 4. GENERATE PREVIEW (Combine DB Data + Manual Input)
+  // 4. GENERATE PREVIEW
   const loadPreview = async () => {
     isLoading.value = true;
     htmlContent.value = ''; 
@@ -157,7 +163,6 @@ export function useTimesheet() {
     }
   };
 
-  // Persistence
   const saveData = () => {
     const data = { employee: employee.value, regularTasks: regularTasks.value, overtimeTasks: overtimeTasks.value };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -179,13 +184,11 @@ export function useTimesheet() {
     }
   };
 
-  // CRUD Rows
   const addRegularRow = () => regularTasks.value.push({ date: '', description: '', ticketNumber: '', ticketLink: '' });
   const removeRegularRow = (index: number) => regularTasks.value.splice(index, 1);
   const addOvertimeRow = () => overtimeTasks.value.push({ date: '', description: '', duration: 1, ticketLink: '', remarks: '' });
   const removeOvertimeRow = (index: number) => overtimeTasks.value.splice(index, 1);
 
-  // --- LIFECYCLE ---
   onMounted(() => {
     loadData();
     fetchAssignees();
@@ -205,7 +208,7 @@ export function useTimesheet() {
     scale, zoomIn, zoomOut, fitScreen, 
     previewContainer, enhancingId, isAppLoading,
     assigneeList, fetchAssignees, 
-    isSyncing, syncData, // <--- EXPORT Sync
+    isSyncing, isRefreshing, syncData, // <--- EXPORT State Baru
     enhanceDescription, isWeekend, autoFillLink, toggleDarkMode,
     addRegularRow, removeRegularRow, addOvertimeRow, removeOvertimeRow,
     loadPreview, printFromIframe
