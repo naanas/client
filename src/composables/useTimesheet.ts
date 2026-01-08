@@ -9,12 +9,15 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export function useTimesheet() {
   // --- STATE ---
-  const isAppLoading = ref(true); // <--- STATE LOADING SCREEN
+  const isAppLoading = ref(true);
   const isDarkMode = ref(false);
   const isLoading = ref(false);
   const htmlContent = ref('');
-  const scale = ref(1);
+  
+  // STATE ZOOM BARU (Lebih Simpel)
+  const scale = ref(0.6); // Default agak kecil biar muat
   const previewContainer = ref<HTMLDivElement | null>(null);
+  
   const enhancingId = ref<string | null>(null);
 
   const employee = ref({
@@ -33,39 +36,44 @@ export function useTimesheet() {
   const regularTasks = ref([{ date: '', description: '', ticketNumber: '', ticketLink: '' }]);
   const overtimeTasks = ref([{ date: '', description: '', duration: 1, ticketLink: '', remarks: '' }]);
 
-  // --- ACTIONS & LOGIC ---
+  // --- ACTIONS ---
 
-  // 1. AI Logic (Manual Request via Axios)
-  const enhanceDescription = async (index: number, type: 'regular' | 'overtime') => {
-    const targetArray = type === 'regular' ? regularTasks.value : overtimeTasks.value;
-    
-    const task = targetArray[index];
-    if (!task) return; 
-
-    const originalText = task.description;
-
-    if (!originalText || originalText.length < 3) {
-      alert("Tulis deskripsi singkat dulu, contoh: 'meeting bahas api'");
-      return;
-    }
-
-    const id = `${type}-${index}`;
-    enhancingId.value = id;
-
-    try {
-      const response = await axios.post(`${API_URL}/api/enhance-description`, {
-        text: originalText
-      });
-      task.description = response.data.text;
-    } catch (error) {
-      console.error(error);
-      alert("Gagal memanggil AI. Cek koneksi backend.");
-    } finally {
-      enhancingId.value = null;
-    }
+  // ZOOM ACTIONS (Simple Math)
+  const zoomIn = () => {
+    if (scale.value < 2.0) scale.value = Number((scale.value + 0.1).toFixed(1));
+  };
+  
+  const zoomOut = () => {
+    if (scale.value > 0.3) scale.value = Number((scale.value - 0.1).toFixed(1));
   };
 
-  // 2. Helpers
+  const fitScreen = () => {
+     if (!previewContainer.value) return;
+     const PAPER_WIDTH = 1123;
+     const availableWidth = previewContainer.value.clientWidth - 40; // padding
+     scale.value = Number(Math.min(1, availableWidth / PAPER_WIDTH).toFixed(2));
+  };
+
+  // ... (SISA LOGIC AI, HELPERS, THEME, DATA PERSISTENCE TETAP SAMA SEPERTI SEBELUMNYA) ...
+  // ... (Copy Paste logic enhanceDescription, isWeekend, autoFillLink, dll dari file sebelumnya) ...
+  
+  const enhanceDescription = async (index: number, type: 'regular' | 'overtime') => {
+    const targetArray = type === 'regular' ? regularTasks.value : overtimeTasks.value;
+    const task = targetArray[index];
+    if (!task) return; 
+    const originalText = task.description;
+    if (!originalText || originalText.length < 3) {
+      alert("Tulis deskripsi singkat dulu."); return;
+    }
+    const id = `${type}-${index}`;
+    enhancingId.value = id;
+    try {
+      const response = await axios.post(`${API_URL}/api/enhance-description`, { text: originalText });
+      task.description = response.data.text;
+    } catch (error) { console.error(error); alert("Gagal memanggil AI."); } 
+    finally { enhancingId.value = null; }
+  };
+
   const isWeekend = (dateStr: string) => {
     if (!dateStr) return false;
     const day = new Date(dateStr).getDay();
@@ -92,7 +100,6 @@ export function useTimesheet() {
     employee.value.month = start === end ? start : `${start} TO ${end}`;
   };
 
-  // 3. Theme Logic
   const applyTheme = () => {
     const html = document.documentElement;
     if (isDarkMode.value) {
@@ -109,15 +116,6 @@ export function useTimesheet() {
     applyTheme();
   };
 
-  // 4. Preview Logic
-  const calculateScale = () => {
-    if (!previewContainer.value) return;
-    const PAPER_WIDTH = 1123; 
-    const PADDING = 32; 
-    const availableWidth = previewContainer.value.clientWidth - PADDING;
-    scale.value = Math.min(1, availableWidth / PAPER_WIDTH);
-  };
-
   const loadPreview = async () => {
     isLoading.value = true;
     htmlContent.value = ''; 
@@ -129,9 +127,9 @@ export function useTimesheet() {
       });
       htmlContent.value = response.data;
       await nextTick();
-      calculateScale();
+      fitScreen(); // Auto fit saat pertama load
     } catch (error) {
-      alert('Gagal load preview. Cek koneksi backend.');
+      alert('Gagal load preview.');
     } finally {
       isLoading.value = false;
     }
@@ -145,7 +143,6 @@ export function useTimesheet() {
     }
   };
 
-  // 5. Data Persistence
   const saveData = () => {
     const data = { employee: employee.value, regularTasks: regularTasks.value, overtimeTasks: overtimeTasks.value };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -168,7 +165,6 @@ export function useTimesheet() {
     const savedTheme = localStorage.getItem(THEME_KEY);
     isDarkMode.value = savedTheme === 'dark';
     applyTheme();
-
     const savedData = localStorage.getItem(STORAGE_KEY);
     if (savedData) {
       try {
@@ -177,39 +173,33 @@ export function useTimesheet() {
         if (parsed.regularTasks) regularTasks.value = parsed.regularTasks;
         if (parsed.overtimeTasks) overtimeTasks.value = parsed.overtimeTasks;
       } catch (e) { console.error(e); }
-    } else {
-      setDefaultDates();
-    }
+    } else { setDefaultDates(); }
   };
 
-  // --- ROW MANAGEMENT ---
   const addRegularRow = () => regularTasks.value.push({ date: '', description: '', ticketNumber: '', ticketLink: '' });
   const removeRegularRow = (index: number) => regularTasks.value.splice(index, 1);
   const addOvertimeRow = () => overtimeTasks.value.push({ date: '', description: '', duration: 1, ticketLink: '', remarks: '' });
   const removeOvertimeRow = (index: number) => overtimeTasks.value.splice(index, 1);
 
-  // --- LIFECYCLE ---
   onMounted(() => {
     loadData();
-    window.addEventListener('resize', calculateScale);
-    setTimeout(calculateScale, 500);
-
-    // LOGIC LOADING SCREEN (Delay 1 detik)
-    setTimeout(() => {
-        isAppLoading.value = false;
-    }, 1000);
+    window.addEventListener('resize', fitScreen);
+    setTimeout(fitScreen, 500);
+    setTimeout(() => { isAppLoading.value = false; }, 1000);
   });
 
   onUnmounted(() => {
-    window.removeEventListener('resize', calculateScale);
+    window.removeEventListener('resize', fitScreen);
   });
 
   watch([employee, regularTasks, overtimeTasks], () => { saveData(); updateMonthField(); }, { deep: true });
 
   return {
     employee, regularTasks, overtimeTasks,
-    isDarkMode, isLoading, htmlContent, scale, previewContainer, enhancingId,
-    isAppLoading, // <--- RETURN STATE INI
+    isDarkMode, isLoading, htmlContent, 
+    // Return Zoom Tools Baru
+    scale, zoomIn, zoomOut, fitScreen, 
+    previewContainer, enhancingId, isAppLoading,
     enhanceDescription, isWeekend, autoFillLink, toggleDarkMode,
     addRegularRow, removeRegularRow, addOvertimeRow, removeOvertimeRow,
     loadPreview, printFromIframe
