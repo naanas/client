@@ -1,225 +1,18 @@
 <script setup lang="ts">
-  import { ref, onMounted, watch, nextTick, onUnmounted } from 'vue';
-  import axios from 'axios';
-  
-  // --- CONSTANTS ---
-  const STORAGE_KEY = 'timesheet_data_v1';
-  const THEME_KEY = 'timesheet_theme';
-  // Ganti URL JIRA sesuai kebutuhan perusahaan
-  const JIRA_BASE_URL = 'https://pegadaian.atlassian.net/browse/';
+  import { useTimesheet } from './composables/useTimesheet';
 
-  // --- STYLE VARIABLES (Tailwind) ---
-  // Ditambahkan class dark:... untuk mode gelap
+  // Panggil Logic dari Composable
+  const {
+    employee, regularTasks, overtimeTasks,
+    isDarkMode, isLoading, htmlContent, scale, enhancingId,
+    enhanceDescription, isWeekend, autoFillLink, toggleDarkMode,
+    addRegularRow, removeRegularRow, addOvertimeRow, removeOvertimeRow,
+    loadPreview, printFromIframe
+  } = useTimesheet();
+
+  // Style Variables (Tetap di sini karena berkaitan dengan tampilan)
   const inputClass = "w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 dark:focus:bg-slate-600 dark:placeholder-slate-500";
-  
   const labelClass = "text-[10px] text-slate-400 font-bold ml-1 dark:text-slate-500";
-
-  // --- ENV VARIABLE ---
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
-  // --- STATE ---
-  const isDarkMode = ref(false);
-
-  const employee = ref({
-    name: 'Annas Putra Anuraga',
-    no: 'POJ42050260',
-    clientSite: 'Divisi Pengembangan Aplikasi TI - PT Pegadaian',
-    workUnit: 'Dept. IT Business Analyst',
-    deptHead: 'Andhar Setiawan',
-    supervisor: 'Lailatul Fitriana R',
-    squad: 'Squad IT PLATFORM',
-    periodStart: '',
-    periodEnd: '',
-    month: '' 
-  });
-
-  const regularTasks = ref([
-    { date: '', description: '', ticketNumber: '', ticketLink: '' }
-  ]);
-
-  const overtimeTasks = ref([
-    { date: '', description: '', duration: 1, ticketLink: '', remarks: '' }
-  ]);
-
-  const htmlContent = ref(''); 
-  const isLoading = ref(false);
-  const previewContainer = ref<HTMLDivElement | null>(null);
-  const scale = ref(1);
-
-  // --- FITUR 2: DETEKSI WEEKEND ---
-  const isWeekend = (dateStr: string) => {
-    if (!dateStr) return false;
-    const day = new Date(dateStr).getDay();
-    return day === 0 || day === 6; // 0 = Minggu, 6 = Sabtu
-  };
-
-  // --- FITUR 3: AUTO JIRA LINK ---
-  const autoFillLink = (task: any) => {
-    // Hanya isi otomatis jika link masih kosong dan ticket number ada isinya
-    if (task.ticketNumber && !task.ticketLink) {
-        // Hapus spasi dan buat uppercase biar rapi
-        const ticketClean = task.ticketNumber.trim().toUpperCase();
-        task.ticketNumber = ticketClean; // Update tampilan input juga
-        task.ticketLink = `${JIRA_BASE_URL}${ticketClean}`;
-    }
-  };
-
-  // --- FITUR 4: DARK MODE TOGGLE ---
-  const toggleDarkMode = () => {
-    isDarkMode.value = !isDarkMode.value;
-    applyTheme();
-  };
-
-  const applyTheme = () => {
-    const html = document.documentElement;
-    if (isDarkMode.value) {
-      html.classList.add('dark');
-      localStorage.setItem(THEME_KEY, 'dark');
-    } else {
-      html.classList.remove('dark');
-      localStorage.setItem(THEME_KEY, 'light');
-    }
-  };
-
-  // --- HELPERS ---
-  const getMonthName = (dateStr: string) => {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    return date.toLocaleString('en-US', { month: 'long' }).toUpperCase();
-  };
-
-  const updateMonthField = () => {
-    const start = getMonthName(employee.value.periodStart);
-    const end = getMonthName(employee.value.periodEnd);
-    employee.value.month = start === end ? start : `${start} TO ${end}`;
-  };
-
-  const calculateScale = () => {
-    if (!previewContainer.value) return;
-    const PAPER_WIDTH = 1123; 
-    const PADDING = 32; 
-    const availableWidth = previewContainer.value.clientWidth - PADDING;
-    scale.value = Math.min(1, availableWidth / PAPER_WIDTH);
-  };
-
-  // --- ACTIONS ---
-  const addRegularRow = () => {
-    regularTasks.value.push({ date: '', description: '', ticketNumber: '', ticketLink: '' });
-  };
-  const removeRegularRow = (index: number) => {
-    regularTasks.value.splice(index, 1);
-  };
-
-  const addOvertimeRow = () => {
-    overtimeTasks.value.push({ date: '', description: '', duration: 1, ticketLink: '', remarks: '' });
-  };
-  const removeOvertimeRow = (index: number) => {
-    overtimeTasks.value.splice(index, 1);
-  };
-
-  // --- FITUR 1: LOAD & SAVE DATA ---
-  const saveData = () => {
-    const data = {
-      employee: employee.value,
-      regularTasks: regularTasks.value,
-      overtimeTasks: overtimeTasks.value
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  };
-
-  const loadData = () => {
-    // 1. Load Theme
-    const savedTheme = localStorage.getItem(THEME_KEY);
-    isDarkMode.value = savedTheme === 'dark';
-    applyTheme();
-
-    // 2. Load Data Form
-    const savedData = localStorage.getItem(STORAGE_KEY);
-    if (savedData) {
-      try {
-        const parsed = JSON.parse(savedData);
-        if (parsed.employee) employee.value = parsed.employee;
-        if (parsed.regularTasks) regularTasks.value = parsed.regularTasks;
-        if (parsed.overtimeTasks) overtimeTasks.value = parsed.overtimeTasks;
-      } catch (e) {
-        console.error('Gagal load data localStorage', e);
-      }
-    } else {
-      // Jika data kosong (pertama kali buka), set default tanggal
-      setDefaultDates();
-    }
-  };
-
-  const setDefaultDates = () => {
-    const today = new Date();
-    const d = today.getDate();
-    const m = today.getMonth();
-    const y = today.getFullYear();
-    let start, end;
-    
-    if (d >= 26) {
-      start = new Date(y, m, 26);
-      end = new Date(y, m + 1, 25);
-    } else {
-      start = new Date(y, m - 1, 26);
-      end = new Date(y, m, 25);
-    }
-    
-    employee.value.periodStart = start.toISOString().split('T')[0] || '';
-    employee.value.periodEnd = end.toISOString().split('T')[0] || '';
-    updateMonthField();
-  };
-
-  // --- LIFECYCLE ---
-  onMounted(() => {
-    loadData();
-    window.addEventListener('resize', calculateScale);
-    setTimeout(calculateScale, 500);
-  });
-
-  onUnmounted(() => {
-    window.removeEventListener('resize', calculateScale);
-  });
-
-  // Watch Changes untuk Auto-Save & Update UI
-  watch(
-    [employee, regularTasks, overtimeTasks], 
-    () => {
-      saveData(); // Auto Save setiap ada perubahan
-      updateMonthField();
-    }, 
-    { deep: true }
-  );
-  
-  // --- API CALLS ---
-  const loadPreview = async () => {
-    isLoading.value = true;
-    htmlContent.value = ''; 
-    
-    try {
-      const response = await axios.post(`${API_URL}/api/preview-html`, {
-        employee: employee.value,
-        tasks: regularTasks.value,
-        overtimeTasks: overtimeTasks.value
-      });
-      htmlContent.value = response.data;
-      await nextTick();
-      calculateScale();
-    } catch (error) {
-      alert('Gagal load preview. Cek koneksi backend.');
-      console.error(error);
-    } finally {
-      isLoading.value = false;
-    }
-  };
-  
-  const printFromIframe = () => {
-    const iframe = document.getElementById('preview-frame') as HTMLIFrameElement;
-    if (iframe && iframe.contentWindow) {
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-    }
-  };
 </script>
   
 <template>
@@ -233,11 +26,10 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
             </div>
             <div>
-            <h1 class="font-bold text-slate-800 dark:text-white text-lg leading-tight">Haha</h1>
-            <p class="text-xs text-slate-400 font-medium">Engine Generator</p>
+            <h1 class="font-bold text-slate-800 dark:text-white text-lg leading-tight">Timesheet</h1>
+            <p class="text-xs text-slate-400 font-medium">Auto-Save & AI Ready ✨</p>
             </div>
         </div>
-
         <button @click="toggleDarkMode" class="p-2 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-yellow-400 hover:bg-slate-200 dark:hover:bg-slate-600 transition">
             <svg v-if="isDarkMode" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
             <svg v-else xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
@@ -245,7 +37,6 @@
       </div>
   
       <div class="flex-1 p-6 space-y-8 md:overflow-y-auto">
-        
         <div class="space-y-4">
           <h3 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b dark:border-slate-700 pb-1">Informasi Karyawan</h3>
           <div class="space-y-2">
@@ -271,14 +62,8 @@
         <div class="space-y-4">
           <h3 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b dark:border-slate-700 pb-1">Periode Timesheet</h3>
           <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label :class="labelClass">Mulai</label>
-              <input v-model="employee.periodStart" type="date" :class="inputClass" />
-            </div>
-            <div>
-              <label :class="labelClass">Selesai</label>
-              <input v-model="employee.periodEnd" type="date" :class="inputClass" />
-            </div>
+            <div><label :class="labelClass">Mulai</label><input v-model="employee.periodStart" type="date" :class="inputClass" /></div>
+            <div><label :class="labelClass">Selesai</label><input v-model="employee.periodEnd" type="date" :class="inputClass" /></div>
           </div>
         </div>
 
@@ -303,22 +88,21 @@
               
               <div class="space-y-2">
                 <div>
-                    <div class="flex justify-between">
-                        <label v-if="isWeekend(task.date)" class="text-[9px] text-red-500 font-bold mb-1">⚠️ Weekend</label>
-                    </div>
+                    <div class="flex justify-between"><label v-if="isWeekend(task.date)" class="text-[9px] text-red-500 font-bold mb-1">⚠️ Weekend</label></div>
                     <input v-model="task.date" type="date" :class="[inputClass, 'w-full md:w-36', isWeekend(task.date) ? 'text-red-600 font-semibold dark:text-red-400' : '']" />
                 </div>
 
-                <textarea v-model="task.description" rows="2" placeholder="Deskripsi Pekerjaan" :class="inputClass + ' resize-none'"></textarea>
+                <div class="relative">
+                    <textarea v-model="task.description" rows="2" placeholder="Deskripsi (ex: meeting bahas api)" :class="inputClass + ' resize-none pr-8'"></textarea>
+                    <button @click="enhanceDescription(index, 'regular')" class="absolute top-2 right-2 text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 transition" title="Perbaiki bahasa dengan AI" :disabled="enhancingId === `regular-${index}`">
+                        <svg v-if="enhancingId === `regular-${index}`" class="animate-spin h-4 w-4 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/></svg>
+                    </button>
+                </div>
+
                 <div class="grid grid-cols-2 gap-2">
-                   <div>
-                       <label :class="labelClass">No. Tiket (BATB)</label>
-                       <input v-model="task.ticketNumber" @input="autoFillLink(task)" type="text" placeholder="BATB-XXXX" :class="inputClass" />
-                   </div>
-                   <div>
-                       <label :class="labelClass">Link JIRA</label>
-                       <input v-model="task.ticketLink" type="text" placeholder="Auto-generated..." :class="inputClass" />
-                   </div>
+                   <div><label :class="labelClass">No. Tiket (BATB)</label><input v-model="task.ticketNumber" @input="autoFillLink(task)" type="text" placeholder="BATB-XXXX" :class="inputClass" /></div>
+                   <div><label :class="labelClass">Link JIRA</label><input v-model="task.ticketLink" type="text" placeholder="Auto-generated..." :class="inputClass" /></div>
                 </div>
               </div>
             </div>
@@ -351,25 +135,23 @@
                         <label v-else :class="labelClass">Tanggal</label>
                         <input v-model="task.date" type="date" :class="[inputClass, isWeekend(task.date) ? 'text-red-600 font-semibold dark:text-red-400' : '']" />
                     </div>
-                    <div class="w-1/3">
-                        <label :class="labelClass">Jam</label>
-                        <input v-model="task.duration" type="number" step="0.5" :class="inputClass + ' text-center'" placeholder="Jam" />
-                    </div>
+                    <div class="w-1/3"><label :class="labelClass">Jam</label><input v-model="task.duration" type="number" step="0.5" :class="inputClass + ' text-center'" placeholder="Jam" /></div>
                 </div>
                 
-                <textarea v-model="task.description" rows="2" placeholder="Deskripsi Lembur" :class="inputClass + ' resize-none'"></textarea>
-                
-                <div>
-                    <label :class="labelClass">Link JIRA</label>
-                    <input v-model="task.ticketLink" type="text" placeholder="https://..." :class="inputClass" />
+                <div class="relative">
+                    <textarea v-model="task.description" rows="2" placeholder="Deskripsi Lembur" :class="inputClass + ' resize-none pr-8'"></textarea>
+                    <button @click="enhanceDescription(index, 'overtime')" class="absolute top-2 right-2 text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 transition" title="Perbaiki bahasa dengan AI" :disabled="enhancingId === `overtime-${index}`">
+                        <svg v-if="enhancingId === `overtime-${index}`" class="animate-spin h-4 w-4 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/></svg>
+                    </button>
                 </div>
                 
+                <div><label :class="labelClass">Link JIRA</label><input v-model="task.ticketLink" type="text" placeholder="https://..." :class="inputClass" /></div>
                 <input v-model="task.remarks" type="text" placeholder="No. Surat Tugas" :class="inputClass" />
               </div>
             </div>
           </div>
         </div>
-
       </div>
   
       <div class="p-4 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 sticky bottom-0 z-30 md:static transition-colors">
@@ -397,38 +179,19 @@
           <iframe id="preview-frame" :srcdoc="htmlContent" title="PDF Preview" class="bg-white block" style="width: 1123px; height: 794px; border: none;"></iframe>
         </div>
         <div v-else class="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-600 opacity-60 text-center">
-           <p class="text-sm">Isi form di samping / atas.<br>Data tersimpan otomatis.</p>
+           <p class="text-sm">Isi form di samping / atas.<br>Gunakan Magic ✨ untuk deskripsi.</p>
         </div>
       </div>
     </main>
-
   </div>
 </template>
 
 <style>
-  /* Base Style untuk scrollbar agar lebih elegan */
   body { margin: 0; }
-  
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 3px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-  }
-  
-  /* Dark mode scrollbar */
-  .dark ::-webkit-scrollbar-thumb {
-    background: #475569;
-  }
-  .dark ::-webkit-scrollbar-thumb:hover {
-    background: #64748b;
-  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  .dark ::-webkit-scrollbar-thumb { background: #475569; }
+  .dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
 </style>
