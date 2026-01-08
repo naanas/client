@@ -2,15 +2,15 @@
     import { useTimesheet } from '../composables/useTimesheet';
     import { useAuth } from '../composables/useAuth';
     
-    // Ambil data User & Logout dari Auth
     const { user, handleLogout } = useAuth();
     
-    // Ambil Logic Timesheet
     const {
       employee, regularTasks, overtimeTasks,
       isDarkMode, isLoading, htmlContent, 
       scale, zoomIn, zoomOut, fitScreen,
-       enhancingId, isAppLoading,
+      previewContainer, enhancingId, isAppLoading,
+      assigneeList, fetchAssignees, 
+      isSyncing, syncData, 
       enhanceDescription, isWeekend, autoFillLink, toggleDarkMode,
       addRegularRow, removeRegularRow, addOvertimeRow, removeOvertimeRow,
       loadPreview, printFromIframe
@@ -57,36 +57,66 @@
             </div>
     
             <div class="flex-1 p-6 space-y-8 md:overflow-y-auto">
-                <div class="space-y-4"><h3 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b dark:border-slate-700 pb-1">Informasi Karyawan</h3><div class="space-y-2"><input v-model="employee.name" type="text" placeholder="Nama" :class="inputClass" /><input v-model="employee.no" type="text" placeholder="NIK" :class="inputClass" /><input v-model="employee.clientSite" type="text" placeholder="Client Site" :class="inputClass" /><input v-model="employee.workUnit" type="text" placeholder="Work Unit" :class="inputClass" /><div class="grid grid-cols-2 gap-2"><input v-model="employee.squad" type="text" placeholder="Squad" :class="inputClass" /><input v-model="employee.month" type="text" placeholder="Month" :class="inputClass + ' bg-blue-50 text-blue-700 font-semibold dark:bg-slate-700 dark:text-blue-400'" /></div></div></div>
+                
+                <div class="space-y-4">
+                    <h3 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b dark:border-slate-700 pb-1">Informasi Karyawan</h3>
+                    <div class="space-y-2">
+                        
+                        <div class="space-y-1">
+                            <div class="flex justify-between items-center">
+                                <label class="text-[10px] font-bold text-slate-400 dark:text-slate-500">NAMA ASSIGNEE (Dari DB)</label>
+                                <div class="flex gap-2">
+                                    <button @click="syncData" :disabled="isSyncing" class="text-[9px] text-green-600 hover:text-green-700 font-bold flex items-center gap-1 disabled:opacity-50 transition-all active:scale-95">
+                                        <span v-if="isSyncing" class="animate-spin">↻</span>
+                                        <span v-else>⬇</span>
+                                        {{ isSyncing ? 'Syncing...' : 'Sync DB' }}
+                                    </button>
+                                    <button @click="fetchAssignees" class="text-[9px] text-blue-500 hover:underline">Refresh List</button>
+                                </div>
+                            </div>
+    
+                            <div class="relative">
+                                <select v-model="employee.name" :class="inputClass + ' appearance-none cursor-pointer'">
+                                    <option value="" disabled>-- Pilih Assignee --</option>
+                                    <option v-for="name in assigneeList" :key="name" :value="name">
+                                        {{ name }}
+                                    </option>
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-slate-500">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </div>
+                            </div>
+                            <input v-if="!assigneeList.length" v-model="employee.name" type="text" placeholder="Ketik Nama Manual..." :class="inputClass" />
+                        </div>
+    
+                        <input v-model="employee.no" type="text" placeholder="NIK" :class="inputClass" />
+                        <input v-model="employee.clientSite" type="text" placeholder="Client Site" :class="inputClass" />
+                        <input v-model="employee.workUnit" type="text" placeholder="Work Unit" :class="inputClass" />
+                        <div class="grid grid-cols-2 gap-2">
+                            <input v-model="employee.squad" type="text" placeholder="Squad" :class="inputClass" />
+                            <input v-model="employee.month" type="text" placeholder="Month" :class="inputClass + ' bg-blue-50 text-blue-700 font-semibold dark:bg-slate-700 dark:text-blue-400'" />
+                        </div>
+                    </div>
+                </div>
+    
                 <div class="space-y-4"><h3 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b dark:border-slate-700 pb-1">Approval</h3><div class="space-y-2"><input v-model="employee.deptHead" type="text" placeholder="Dept Head" :class="inputClass" /><input v-model="employee.supervisor" type="text" placeholder="Supervisor" :class="inputClass" /></div></div>
                 <div class="space-y-4"><h3 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b dark:border-slate-700 pb-1">Periode</h3><div class="grid grid-cols-2 gap-2"><div><label :class="labelClass">Mulai</label><input v-model="employee.periodStart" type="date" :class="inputClass" /></div><div><label :class="labelClass">Selesai</label><input v-model="employee.periodEnd" type="date" :class="inputClass" /></div></div></div>
                 
                 <div class="space-y-4">
                     <div class="flex justify-between items-center border-b dark:border-slate-700 pb-1">
-                        <h3 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">A. Regular</h3>
+                        <h3 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">A. Tambahan Manual</h3>
                         <button @click="addRegularRow" class="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded hover:bg-blue-100 dark:bg-slate-700 dark:text-blue-400 dark:hover:bg-slate-600 font-bold">+ Tambah</button>
                     </div>
                     
                     <div v-if="regularTasks.length === 0" class="text-center py-4 text-xs text-slate-400 bg-slate-50 dark:bg-slate-800/50 rounded border border-dashed dark:border-slate-700">
-                        Belum ada data regular.
+                        Tidak ada input manual (Data otomatis dari DB).
                     </div>
                     <div v-else class="space-y-4">
                         <div v-for="(task, index) in regularTasks" :key="index" class="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 relative group" :class="{'border-red-300 dark:border-red-900 bg-red-50 dark:bg-red-900/10': isWeekend(task.date)}">
                             <button @click="removeRegularRow(index)" class="absolute top-2 right-2 text-slate-300 hover:text-red-500 dark:hover:text-red-400 transition"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
                             <div class="space-y-2">
                                 <div><label v-if="isWeekend(task.date)" class="text-[9px] text-red-500 font-bold mb-1">⚠️ Weekend</label><input v-model="task.date" type="date" :class="[inputClass, 'w-full md:w-36', isWeekend(task.date) ? 'text-red-600 font-semibold dark:text-red-400' : '']" /></div>
-                                
-                                <div class="relative">
-                                    <textarea v-model="task.description" rows="2" placeholder="Deskripsi (ex: meeting bahas api)" :class="inputClass + ' resize-none pr-8'"></textarea>
-                                    <button @click="enhanceDescription(index, 'regular')" class="absolute top-2 right-2 text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 transition p-1" :disabled="enhancingId === `regular-${index}`" title="Perbaiki Bahasa dengan AI">
-                                        <svg v-if="enhancingId === `regular-${index}`" class="animate-spin h-4 w-4 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/></svg>
-                                    </button>
-                                </div>
-    
+                                <div class="relative"><textarea v-model="task.description" rows="2" placeholder="Deskripsi" :class="inputClass + ' resize-none pr-8'"></textarea><button @click="enhanceDescription(index, 'regular')" class="absolute top-2 right-2 text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 transition" :disabled="enhancingId === `regular-${index}`">✨</button></div>
                                 <div class="grid grid-cols-2 gap-2"><div><label :class="labelClass">No. Tiket</label><input v-model="task.ticketNumber" @input="autoFillLink(task)" type="text" :class="inputClass" /></div><div><label :class="labelClass">Link JIRA</label><input v-model="task.ticketLink" type="text" :class="inputClass" /></div></div>
                             </div>
                         </div>
@@ -107,18 +137,7 @@
                             <button @click="removeOvertimeRow(index)" class="absolute top-2 right-2 text-slate-300 hover:text-red-500 dark:hover:text-red-400 transition"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
                             <div class="space-y-2">
                                 <div class="flex gap-2"><div class="w-2/3"><label v-if="isWeekend(task.date)" class="text-[9px] text-red-500 font-bold mb-1 ml-1">⚠️ Weekend</label><input v-model="task.date" type="date" :class="[inputClass, isWeekend(task.date) ? 'text-red-600 font-semibold dark:text-red-400' : '']" /></div><div class="w-1/3"><input v-model="task.duration" type="number" step="0.5" :class="inputClass + ' text-center'" placeholder="Jam" /></div></div>
-                                
-                                <div class="relative">
-                                    <textarea v-model="task.description" rows="2" placeholder="Deskripsi Lembur" :class="inputClass + ' resize-none pr-8'"></textarea>
-                                    <button @click="enhanceDescription(index, 'overtime')" class="absolute top-2 right-2 text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 transition p-1" :disabled="enhancingId === `overtime-${index}`" title="Perbaiki Bahasa dengan AI">
-                                        <svg v-if="enhancingId === `overtime-${index}`" class="animate-spin h-4 w-4 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/></svg>
-                                    </button>
-                                </div>
-    
+                                <div class="relative"><textarea v-model="task.description" rows="2" placeholder="Deskripsi Lembur" :class="inputClass + ' resize-none pr-8'"></textarea><button @click="enhanceDescription(index, 'overtime')" class="absolute top-2 right-2 text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 transition" :disabled="enhancingId === `overtime-${index}`">✨</button></div>
                                 <input v-model="task.remarks" type="text" placeholder="No. Surat Tugas" :class="inputClass" />
                             </div>
                         </div>
@@ -146,7 +165,7 @@
                 <button @click="printFromIframe" :disabled="!htmlContent" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm font-bold rounded-lg shadow-md transition-all active:scale-95 disabled:opacity-50">Save PDF</button>
             </header>
             
-            <div ref="previewContainer" class="flex-1 overflow-auto p-4 md:p-8 flex justify-center items-start bg-slate-200/50 dark:bg-slate-950/50 min-h-[500px] transition-colors relative">
+            <div ref="previewContainer" class="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 flex justify-center items-start bg-slate-200/50 dark:bg-slate-950/50 min-h-[500px] transition-colors relative">
                 <div v-if="htmlContent" class="bg-white shadow-2xl transition-transform duration-200 origin-top-center" :style="{ transform: `scale(${scale})`, transformOrigin: 'top center', width: '1123px', height: '794px', flexShrink: 0 }">
                     <iframe id="preview-frame" :srcdoc="htmlContent" title="PDF Preview" class="block w-full h-full border-none"></iframe>
                 </div>
