@@ -12,6 +12,9 @@ const isDarkMode = ref(false);
 const isLoading = ref(false);
 const isSyncing = ref(false);
 const isRefreshing = ref(false);
+// ADDED: State khusus untuk loading spinner di dropdown/button assignee
+const isAssigneeLoading = ref(false); 
+
 const htmlContent = ref('');
 const scale = ref(0.6);
 const previewContainer = ref<HTMLDivElement | null>(null);
@@ -46,10 +49,23 @@ export function useTimesheet() {
     finally { isSyncing.value = false; }
   };
 
+  // UPDATED: Menambahkan trigger isAssigneeLoading
   const fetchAssignees = async () => {
     isRefreshing.value = true;
-    try { const { data } = await axios.get(`${API_URL}/api/assignees`); assigneeList.value = data; } 
-    catch (e) {} finally { setTimeout(() => isRefreshing.value = false, 500); }
+    isAssigneeLoading.value = true; // Start Spinner
+    try { 
+        const { data } = await axios.get(`${API_URL}/api/assignees`); 
+        assigneeList.value = data; 
+    } 
+    catch (e) { 
+        console.error("Gagal load assignees", e); 
+    } 
+    finally { 
+        setTimeout(() => {
+            isRefreshing.value = false;
+            isAssigneeLoading.value = false; // Stop Spinner
+        }, 500); 
+    }
   };
 
   const enhanceDescription = async (index: number, type: 'regular' | 'overtime') => {
@@ -62,13 +78,12 @@ export function useTimesheet() {
     } finally { enhancingId.value = null; }
   };
 
-  // --- UPDATE: Parameter type (default 'mandays') ---
   const loadPreview = async (type: 'mandays' | 'timesheet' = 'mandays') => {
     isLoading.value = true;
     htmlContent.value = ''; 
     try {
       const response = await axios.post(`${API_URL}/api/preview-html`, {
-        type, // Kirim tipe template ke backend
+        type, 
         employee: employee.value, 
         tasks: regularTasks.value, 
         overtimeTasks: overtimeTasks.value
@@ -118,7 +133,9 @@ export function useTimesheet() {
   watch([employee, regularTasks, overtimeTasks], saveData, { deep: true });
 
   return {
-    employee, regularTasks, overtimeTasks, assigneeList, isDarkMode, isLoading, isSyncing, isRefreshing, isAppLoading, htmlContent, scale, previewContainer, enhancingId,
+    employee, regularTasks, overtimeTasks, assigneeList, 
+    isDarkMode, isLoading, isSyncing, isRefreshing, isAssigneeLoading, // Export isAssigneeLoading
+    isAppLoading, htmlContent, scale, previewContainer, enhancingId,
     syncData, fetchAssignees, enhanceDescription, loadPreview, autoFillLink, isWeekend, toggleDarkMode, fitScreen, printFromIframe,
     zoomIn: () => scale.value < 2 ? scale.value += 0.1 : null,
     zoomOut: () => scale.value > 0.3 ? scale.value -= 0.1 : null,
