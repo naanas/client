@@ -1,0 +1,170 @@
+<script setup lang="ts">
+    import { ref, onMounted, watch } from 'vue';
+    import dayjs from 'dayjs';
+    import { useTimesheet } from '../../composables/useTimesheet';
+    
+    const {
+      employee, regularTasks, overtimeTasks,
+      assigneeList, isSyncing, isRefreshing, syncData, fetchAssignees,
+      isWeekend, addRegularRow, removeRegularRow, addOvertimeRow, removeOvertimeRow,
+    } = useTimesheet();
+    
+    const inputClass = "w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all placeholder:text-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 dark:focus:bg-slate-600 dark:placeholder-slate-500";
+    const labelClass = "text-[10px] text-slate-400 font-bold ml-1 dark:text-slate-500 uppercase";
+    
+    // --- LOGIC PERIODE ---
+    const months = [
+        { val: 0, label: 'Januari' }, { val: 1, label: 'Februari' }, { val: 2, label: 'Maret' },
+        { val: 3, label: 'April' }, { val: 4, label: 'Mei' }, { val: 5, label: 'Juni' },
+        { val: 6, label: 'Juli' }, { val: 7, label: 'Agustus' }, { val: 8, label: 'September' },
+        { val: 9, label: 'Oktober' }, { val: 10, label: 'November' }, { val: 11, label: 'Desember' }
+    ];
+    
+    const selectedMonth = ref(dayjs().month()); 
+    const selectedYear = ref(dayjs().year());
+    const currentYear = dayjs().year();
+    const years = [currentYear - 2, currentYear - 1, currentYear, currentYear + 1];
+    
+    const updatePeriodDates = () => {
+        const targetEndDate = dayjs().year(selectedYear.value).month(selectedMonth.value).date(25);
+        const targetStartDate = targetEndDate.subtract(1, 'month').date(26);
+    
+        employee.value.periodEnd = targetEndDate.format('YYYY-MM-DD');
+        employee.value.periodStart = targetStartDate.format('YYYY-MM-DD');
+        
+        // Auto Label Month
+        const mStart = targetStartDate.format('MMMM').toUpperCase();
+        const mEnd = targetEndDate.format('MMMM').toUpperCase();
+        employee.value.month = mStart === mEnd ? mStart : `${mStart} TO ${mEnd}`;
+    };
+    
+    watch([selectedMonth, selectedYear], updatePeriodDates);
+    onMounted(() => updatePeriodDates());
+    
+    // Helper Status
+    const updateDescription = (task: any) => {
+        if (task.status === 'AL') task.description = '[AL] Cuti Tahunan';
+        else if (task.status === 'S') task.description = '[S] Sakit';
+        else if (task.status === 'H') task.description = '[H] Libur Nasional';
+        else if (task.status === 'U') task.description = '[U] Unpaid Leave';
+        else if (task.status === 'WH') task.description = ''; 
+    };
+    </script>
+    
+    <template>
+      <div class="space-y-8 animate-fade-in pb-20">
+        
+        <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl border border-green-100 dark:border-green-800 flex items-center gap-3">
+            <div class="p-2 bg-green-100 dark:bg-green-800 text-green-600 dark:text-green-200 rounded-lg">📅</div>
+            <div>
+                <h3 class="text-xs font-bold text-green-700 dark:text-green-300">Timesheet Data</h3>
+                <p class="text-[10px] text-green-600 dark:text-green-400">Pastikan Status Harian (WH/AL/S) sesuai.</p>
+            </div>
+        </div>
+    
+        <div class="space-y-2">
+            <h3 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b dark:border-slate-700 pb-1">Periode Laporan</h3>
+            <div class="grid grid-cols-2 gap-4 bg-white dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Bulan (Cut-off tgl 25)</label>
+                    <select v-model="selectedMonth" :class="inputClass + ' font-bold text-green-700 dark:text-green-400'">
+                        <option v-for="m in months" :key="m.val" :value="m.val">{{ m.label }}</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Tahun</label>
+                    <select v-model="selectedYear" :class="inputClass + ' font-bold text-green-700 dark:text-green-400'">
+                        <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+                    </select>
+                </div>
+                <div class="col-span-2 text-center text-[10px] text-slate-400">
+                    Range: <b>{{ dayjs(employee.periodStart).format('DD MMM YYYY') }}</b> s/d <b>{{ dayjs(employee.periodEnd).format('DD MMM YYYY') }}</b>
+                </div>
+            </div>
+        </div>
+    
+        <div class="space-y-4">
+            <h3 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b dark:border-slate-700 pb-1">Data Karyawan</h3>
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 space-y-3">
+                
+                <div class="space-y-1">
+                    <div class="flex justify-between items-center">
+                        <label :class="labelClass">Nama Assignee</label>
+                        <div class="flex gap-2">
+                            <button @click="syncData" :disabled="isSyncing" class="text-[9px] font-bold flex items-center gap-1 text-green-600 disabled:opacity-50 hover:underline">🔄 Sync DB</button>
+                            <button @click="fetchAssignees" :disabled="isRefreshing" class="text-[9px] text-blue-500 hover:underline">Refresh List</button>
+                        </div>
+                    </div>
+                    <select v-model="employee.name" :class="inputClass"><option value="" disabled>-- Pilih Nama --</option><option v-for="name in assigneeList" :key="name" :value="name">{{ name }}</option></select>
+                </div>
+    
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label :class="labelClass">NIK / Employee No</label><input v-model="employee.no" type="text" :class="inputClass" /></div>
+                    <div><label :class="labelClass">Squad</label><input v-model="employee.squad" type="text" :class="inputClass" /></div>
+                    
+                    <div><label :class="labelClass">Work Unit</label><input v-model="employee.workUnit" type="text" :class="inputClass" /></div>
+                    <div><label :class="labelClass">Client Site</label><input v-model="employee.clientSite" type="text" :class="inputClass" /></div>
+                    
+                    <div><label :class="labelClass">Dept. Head</label><input v-model="employee.deptHead" type="text" :class="inputClass" /></div>
+                    <div><label :class="labelClass">Supervisor</label><input v-model="employee.supervisor" type="text" :class="inputClass" /></div>
+                </div>
+            </div>
+        </div>
+    
+        <div class="space-y-4">
+            <div class="flex justify-between items-center border-b dark:border-slate-700 pb-1">
+                <h3 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">A. Activity Log</h3>
+                <button @click="addRegularRow" class="text-[10px] bg-green-100 text-green-700 px-3 py-1.5 rounded hover:bg-green-200 font-bold transition">+ Input Tanggal</button>
+            </div>
+            
+            <div v-if="regularTasks.length === 0" class="text-center py-6 text-xs text-slate-400 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-dashed dark:border-slate-700">Belum ada data activity.</div>
+            
+            <div v-for="(task, index) in regularTasks" :key="index" class="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 relative shadow-sm hover:shadow-md transition">
+                <button @click="removeRegularRow(index)" class="absolute -top-2 -right-2 bg-white dark:bg-slate-700 text-red-500 rounded-full w-5 h-5 flex items-center justify-center shadow border border-slate-200 dark:border-slate-600 hover:bg-red-50">×</button>
+                <div class="space-y-2">
+                    <div class="flex gap-2">
+                        <div class="w-1/2">
+                            <label class="text-[9px] font-bold text-slate-400">Tanggal</label>
+                            <input v-model="task.date" type="date" :class="[inputClass, isWeekend(task.date) ? 'text-red-500 font-bold bg-red-50 dark:bg-red-900/10' : '']" />
+                        </div>
+                        <div class="w-1/2">
+                            <label class="text-[9px] font-bold text-slate-400">Status</label>
+                            <select v-model="task.status" @change="updateDescription(task)" :class="inputClass">
+                                <option value="WH">✅ Hadir (Work)</option>
+                                <option value="AL">🏖️ Cuti (AL)</option>
+                                <option value="S">💊 Sakit (S)</option>
+                                <option value="H">🔴 Libur (H)</option>
+                                <option value="U">💸 Unpaid (U)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-bold text-slate-400">Activity / Description</label>
+                        <input v-model="task.description" type="text" placeholder="Detail aktivitas..." :class="inputClass" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+        <div class="space-y-4">
+            <div class="flex justify-between items-center border-b dark:border-slate-700 pb-1">
+                <h3 class="text-xs font-bold text-slate-400 uppercase">B. Overtime</h3>
+                <button @click="addOvertimeRow" class="text-[10px] bg-green-100 text-green-700 px-3 py-1.5 rounded hover:bg-green-200 font-bold transition">+ Lembur</button>
+            </div>
+            <div v-for="(task, index) in overtimeTasks" :key="index" class="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 relative shadow-sm">
+                <button @click="removeOvertimeRow(index)" class="absolute -top-2 -right-2 bg-white dark:bg-slate-700 text-red-500 rounded-full w-5 h-5 flex items-center justify-center shadow border border-slate-200 hover:bg-red-50">×</button>
+                <div class="flex gap-2 items-center">
+                    <input v-model="task.date" type="date" :class="inputClass" class="w-1/3" />
+                    <input v-model="task.duration" type="number" step="0.5" placeholder="Jam" :class="inputClass" class="w-20 text-center" />
+                    <input v-model="task.description" type="text" placeholder="Ket." :class="inputClass" class="flex-1" />
+                </div>
+            </div>
+        </div>
+    
+      </div>
+    </template>
+    
+    <style scoped>
+    .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
