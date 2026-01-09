@@ -12,7 +12,7 @@ export function useTimesheet() {
   const isDarkMode = ref(false);
   const isLoading = ref(false); // Generate Preview
   const isSyncing = ref(false); // Sync DB
-  const isRefreshing = ref(false); // Refresh List Nama <--- STATE BARU
+  const isRefreshing = ref(false); // Refresh List Nama
   
   const htmlContent = ref('');
   const scale = ref(0.6);
@@ -22,7 +22,8 @@ export function useTimesheet() {
   // Data States
   const assigneeList = ref<string[]>([]);
   const employee = ref({
-    name: '', 
+    name: '',       // Digunakan untuk query ke Database
+    reportName: '', // Digunakan untuk tampilan NAMA LENGKAP di PDF (Bisa diedit)
     no: 'POJ42050260',
     clientSite: 'Divisi Pengembangan Aplikasi TI - PT Pegadaian',
     workUnit: 'Dept. IT Business Analyst',
@@ -36,6 +37,15 @@ export function useTimesheet() {
 
   const regularTasks = ref<any[]>([]);
   const overtimeTasks = ref<any[]>([]);
+
+  // --- WATCHERS ---
+
+  // Otomatis copy nama dari dropdown ke field Report Name saat dipilih
+  watch(() => employee.value.name, (newVal) => {
+    if (newVal) {
+        employee.value.reportName = newVal;
+    }
+  });
 
   // --- ACTIONS ---
 
@@ -208,7 +218,7 @@ export function useTimesheet() {
     scale, zoomIn, zoomOut, fitScreen, 
     previewContainer, enhancingId, isAppLoading,
     assigneeList, fetchAssignees, 
-    isSyncing, isRefreshing, syncData, // <--- EXPORT State Baru
+    isSyncing, isRefreshing, syncData, 
     enhanceDescription, isWeekend, autoFillLink, toggleDarkMode,
     addRegularRow, removeRegularRow, addOvertimeRow, removeOvertimeRow,
     loadPreview, printFromIframe

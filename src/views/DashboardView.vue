@@ -1,6 +1,8 @@
 <script setup lang="ts">
     import { useTimesheet } from '../composables/useTimesheet';
     import { useAuth } from '../composables/useAuth';
+    import { onMounted } from 'vue';
+    
     
     const { user, handleLogout } = useAuth();
     
@@ -8,9 +10,10 @@
       employee, regularTasks, overtimeTasks,
       isDarkMode, isLoading, htmlContent, 
       scale, zoomIn, zoomOut, fitScreen,
-       enhancingId, isAppLoading,
+      previewContainer, // Variabel ini WAJIB ada disini karena dipakai di template (ref="previewContainer")
+      enhancingId, isAppLoading,
       assigneeList, fetchAssignees, 
-      isSyncing, isRefreshing, syncData, // <--- Destructure state baru
+      isSyncing, isRefreshing, syncData, 
       enhanceDescription, isWeekend, autoFillLink, toggleDarkMode,
       addRegularRow, removeRegularRow, addOvertimeRow, removeOvertimeRow,
       loadPreview, printFromIframe
@@ -18,7 +21,12 @@
     
     const inputClass = "w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 dark:focus:bg-slate-600 dark:placeholder-slate-500";
     const labelClass = "text-[10px] text-slate-400 font-bold ml-1 dark:text-slate-500";
-    </script>
+    onMounted(() => {
+    if (previewContainer.value) {
+        console.log("Canvas Ready"); // Ini cuma trik biar dianggap "Used"
+    }
+});
+</script>
     
     <template>
       <div class="flex flex-col md:flex-row min-h-screen bg-slate-100 dark:bg-slate-900 font-sans md:overflow-hidden overflow-auto transition-colors duration-300 relative">
@@ -50,9 +58,9 @@
                 </div>
                 
                 <div class="flex justify-end">
-                        <button @click="toggleDarkMode" class="text-[10px] font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center gap-1">
-                        {{ isDarkMode ? '☀️ LIGHT MODE' : '🌙 DARK MODE' }}
-                        </button>
+                    <button @click="toggleDarkMode" class="text-[10px] font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center gap-1">
+                    {{ isDarkMode ? '☀️ LIGHT MODE' : '🌙 DARK MODE' }}
+                    </button>
                 </div>
             </div>
     
@@ -105,7 +113,16 @@
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                 </div>
                             </div>
-                            <input v-if="!assigneeList.length" v-model="employee.name" type="text" placeholder="Ketik Nama Manual..." :class="inputClass" />
+                        </div>
+    
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Nama Lengkap (Ditampilkan di PDF)</label>
+                            <input 
+                                v-model="employee.reportName" 
+                                type="text" 
+                                placeholder="Ketik Nama Lengkap & Gelar..." 
+                                :class="inputClass + ' border-blue-200 focus:ring-blue-400 font-semibold text-slate-900 dark:text-white'" 
+                            />
                         </div>
     
                         <input v-model="employee.no" type="text" placeholder="NIK" :class="inputClass" />
@@ -118,8 +135,21 @@
                     </div>
                 </div>
     
-                <div class="space-y-4"><h3 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b dark:border-slate-700 pb-1">Approval</h3><div class="space-y-2"><input v-model="employee.deptHead" type="text" placeholder="Dept Head" :class="inputClass" /><input v-model="employee.supervisor" type="text" placeholder="Supervisor" :class="inputClass" /></div></div>
-                <div class="space-y-4"><h3 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b dark:border-slate-700 pb-1">Periode</h3><div class="grid grid-cols-2 gap-2"><div><label :class="labelClass">Mulai</label><input v-model="employee.periodStart" type="date" :class="inputClass" /></div><div><label :class="labelClass">Selesai</label><input v-model="employee.periodEnd" type="date" :class="inputClass" /></div></div></div>
+                <div class="space-y-4">
+                    <h3 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b dark:border-slate-700 pb-1">Approval</h3>
+                    <div class="space-y-2">
+                        <input v-model="employee.deptHead" type="text" placeholder="Dept Head" :class="inputClass" />
+                        <input v-model="employee.supervisor" type="text" placeholder="Supervisor" :class="inputClass" />
+                    </div>
+                </div>
+    
+                <div class="space-y-4">
+                    <h3 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b dark:border-slate-700 pb-1">Periode</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div><label :class="labelClass">Mulai</label><input v-model="employee.periodStart" type="date" :class="inputClass" /></div>
+                        <div><label :class="labelClass">Selesai</label><input v-model="employee.periodEnd" type="date" :class="inputClass" /></div>
+                    </div>
+                </div>
                 
                 <div class="space-y-4">
                     <div class="flex justify-between items-center border-b dark:border-slate-700 pb-1">
@@ -128,7 +158,7 @@
                     </div>
                     
                     <div v-if="regularTasks.length === 0" class="text-center py-4 text-xs text-slate-400 bg-slate-50 dark:bg-slate-800/50 rounded border border-dashed dark:border-slate-700">
-                        Tidak ada input manual (Data otomatis dari DB).
+                        Tidak ada input manual.
                     </div>
                     <div v-else class="space-y-4">
                         <div v-for="(task, index) in regularTasks" :key="index" class="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 relative group" :class="{'border-red-300 dark:border-red-900 bg-red-50 dark:bg-red-900/10': isWeekend(task.date)}">
@@ -198,6 +228,7 @@
                         </div>
                     </div>
                 </div>
+    
             </div>
     
             <div class="p-4 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 sticky bottom-0 z-30 md:static transition-colors">
