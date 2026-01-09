@@ -5,8 +5,8 @@ import { useTimesheet } from '../../composables/useTimesheet';
 
 const {
   employee, regularTasks, overtimeTasks,
-  assigneeList, isSyncing, isAssigneeLoading, // Ambil state loading baru
-  syncData, fetchAssignees,
+  assigneeList, isSyncing, isAssigneeLoading,
+  syncData, fetchAssignees, downloadExcel, // <--- Tambahkan downloadExcel
   isWeekend, addRegularRow, removeRegularRow, addOvertimeRow, removeOvertimeRow,
 } = useTimesheet();
 
@@ -42,7 +42,6 @@ const updatePeriodDates = () => {
 watch([selectedMonth, selectedYear], updatePeriodDates);
 onMounted(() => {
     updatePeriodDates();
-    // fetchAssignees dipanggil otomatis di useTimesheet onMounted, jadi aman
 });
 
 // Helper Status
@@ -58,12 +57,18 @@ const updateDescription = (task: any) => {
 <template>
   <div class="pb-20 space-y-8 animate-fade-in">
     
-    <div class="flex items-center gap-3 p-4 border border-green-100 bg-green-50 dark:bg-green-900/20 rounded-xl dark:border-green-800">
-        <div class="p-2 text-green-600 bg-green-100 rounded-lg dark:bg-green-800 dark:text-green-200">📅</div>
-        <div>
-            <h3 class="text-xs font-bold text-green-700 dark:text-green-300">Timesheet Data</h3>
-            <p class="text-[10px] text-green-600 dark:text-green-400">Pastikan Status Harian (WH/AL/S) sesuai.</p>
+    <div class="flex items-center justify-between p-4 border border-green-100 bg-green-50 dark:bg-green-900/20 rounded-xl dark:border-green-800">
+        <div class="flex items-center gap-3">
+            <div class="p-2 text-green-600 bg-green-100 rounded-lg dark:bg-green-800 dark:text-green-200">📅</div>
+            <div>
+                <h3 class="text-xs font-bold text-green-700 dark:text-green-300">Timesheet Data</h3>
+                <p class="text-[10px] text-green-600 dark:text-green-400">Pastikan Status Harian (WH/AL/S) sesuai.</p>
+            </div>
         </div>
+        
+        <button @click="downloadExcel" class="px-3 py-1.5 bg-white dark:bg-slate-800 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-700 rounded-lg text-[10px] font-bold hover:bg-green-50 dark:hover:bg-green-900/30 shadow-sm transition flex items-center gap-1" title="Download Format Excel (.xlsx)">
+            📊 .xlsx
+        </button>
     </div>
 
     <div class="space-y-2">

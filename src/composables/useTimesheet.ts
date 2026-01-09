@@ -12,8 +12,7 @@ const isDarkMode = ref(false);
 const isLoading = ref(false);
 const isSyncing = ref(false);
 const isRefreshing = ref(false);
-// ADDED: State khusus untuk loading spinner di dropdown/button assignee
-const isAssigneeLoading = ref(false); 
+const isAssigneeLoading = ref(false); // State Loading Assignee
 
 const htmlContent = ref('');
 const scale = ref(0.6);
@@ -49,10 +48,9 @@ export function useTimesheet() {
     finally { isSyncing.value = false; }
   };
 
-  // UPDATED: Menambahkan trigger isAssigneeLoading
   const fetchAssignees = async () => {
     isRefreshing.value = true;
-    isAssigneeLoading.value = true; // Start Spinner
+    isAssigneeLoading.value = true;
     try { 
         const { data } = await axios.get(`${API_URL}/api/assignees`); 
         assigneeList.value = data; 
@@ -63,7 +61,7 @@ export function useTimesheet() {
     finally { 
         setTimeout(() => {
             isRefreshing.value = false;
-            isAssigneeLoading.value = false; // Stop Spinner
+            isAssigneeLoading.value = false;
         }, 500); 
     }
   };
@@ -92,6 +90,37 @@ export function useTimesheet() {
     } catch (error) {
         alert("Gagal memuat preview.");
     } finally { isLoading.value = false; }
+  };
+
+  // --- FITUR DOWNLOAD EXCEL ---
+  const downloadExcel = async () => {
+    if (!confirm("Download versi Excel (.xlsx)?")) return;
+    
+    try {
+        const response = await axios.post(`${API_URL}/api/generate-timesheet`, {
+            employee: employee.value,
+            tasks: regularTasks.value,
+            overtimeTasks: overtimeTasks.value
+        }, { 
+            responseType: 'blob' // Wajib blob agar file terbaca
+        });
+
+        // Buat link download virtual
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        const filename = `Timesheet_${employee.value.name || 'Export'}.xlsx`;
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        
+        // Cleanup
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error(error);
+        alert("Gagal download Excel. Pastikan backend server support.");
+    }
   };
 
   const autoFillLink = (task: any) => {
@@ -134,9 +163,10 @@ export function useTimesheet() {
 
   return {
     employee, regularTasks, overtimeTasks, assigneeList, 
-    isDarkMode, isLoading, isSyncing, isRefreshing, isAssigneeLoading, // Export isAssigneeLoading
+    isDarkMode, isLoading, isSyncing, isRefreshing, isAssigneeLoading, 
     isAppLoading, htmlContent, scale, previewContainer, enhancingId,
-    syncData, fetchAssignees, enhanceDescription, loadPreview, autoFillLink, isWeekend, toggleDarkMode, fitScreen, printFromIframe,
+    syncData, fetchAssignees, enhanceDescription, loadPreview, downloadExcel, // <-- Export downloadExcel
+    autoFillLink, isWeekend, toggleDarkMode, fitScreen, printFromIframe,
     zoomIn: () => scale.value < 2 ? scale.value += 0.1 : null,
     zoomOut: () => scale.value > 0.3 ? scale.value -= 0.1 : null,
     addRegularRow: () => regularTasks.value.push({ date: '', description: '', ticketNumber: '', ticketLink: '' }),
