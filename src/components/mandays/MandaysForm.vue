@@ -9,7 +9,7 @@ const {
   enhanceDescription, enhancingId, isWeekend, autoFillLink,
   addRegularRow, removeRegularRow, addOvertimeRow, removeOvertimeRow,
   downloadExcel,     // Fitur Excel
-  payAndExportPdf,   // Fitur Xendit
+  openPaymentModal,  // GANTI: Panggil fungsi buka modal
   isPaymentLoading   // Loading State
 } = useTimesheet();
 
@@ -43,13 +43,12 @@ onMounted(() => {
             </button>
             
             <button 
-                @click="payAndExportPdf('mandays')"
+                @click="openPaymentModal('mandays')"
                 :disabled="isPaymentLoading"
                 class="flex items-center justify-center flex-1 gap-2 px-3 py-2 text-xs font-bold text-white transition bg-purple-600 rounded-lg shadow md:flex-none hover:bg-purple-700 disabled:opacity-50"
                 title="Bayar & Kirim PDF ke Email"
             >
-                <span v-if="isPaymentLoading" class="animate-spin">⏳</span>
-                <span v-else>💳</span>
+                <span>💳</span>
                 PDF (Email)
             </button>
         </div>

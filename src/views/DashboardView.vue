@@ -1,15 +1,17 @@
 <script setup lang="ts">
     import { ref, onMounted } from 'vue';
-    import { useRouter } from 'vue-router'; // 1. Import Router
+    import { useRouter } from 'vue-router';
     import { useTimesheet } from '../composables/useTimesheet';
     import { useAuth } from '../composables/useAuth';
     import MandaysForm from '../components/mandays/MandaysForm.vue';
     import TimesheetForm from '../components/timesheet/TimesheetForm.vue';
+    // Import Modal Baru
+    import EmailModal from '../components/EmailModal.vue'; 
     
     type Tab = 'home' | 'timesheet' | 'mandays';
     const activeTab = ref<Tab>('home');
     
-    const router = useRouter(); // 2. Init Router
+    const router = useRouter();
     const { user, handleLogout } = useAuth();
     
     const {
@@ -18,10 +20,9 @@
       loadPreview, printFromIframe, isLoading
     } = useTimesheet();
     
-    // 3. Fungsi Logout & Redirect
     const logoutAndRedirect = async () => {
         await handleLogout();
-        router.replace('/auth'); // Pakai replace agar tidak bisa di-back
+        router.replace('/auth');
     };
 
     onMounted(() => {
@@ -32,6 +33,8 @@
 <template>
     <div class="relative flex flex-col min-h-screen overflow-auto font-sans transition-colors duration-300 md:flex-row bg-slate-100 dark:bg-slate-900 md:overflow-hidden">
     
+    <EmailModal />
+
     <Transition name="fade">
         <div v-if="isAppLoading" class="fixed inset-0 z-50 flex flex-col items-center justify-center transition-colors duration-300 bg-white dark:bg-slate-900">
             <div class="w-8 h-8 mb-4 border-4 border-blue-200 rounded-full border-t-blue-600 animate-spin"></div>
@@ -40,7 +43,6 @@
     </Transition>
 
     <aside class="relative z-20 flex flex-col flex-shrink-0 w-full transition-colors duration-300 bg-white border-b shadow-xl md:w-96 dark:bg-slate-800 md:border-b-0 md:border-r border-slate-200 dark:border-slate-700">
-        
         <div class="sticky top-0 z-30 p-6 transition-colors bg-white border-b border-slate-100 dark:border-slate-700 dark:bg-slate-800 md:static">
             <div class="flex items-center justify-between mb-6">
                 <div class="flex items-center gap-3">
@@ -92,28 +94,24 @@
     </aside>
 
     <main class="flex flex-col flex-1 min-w-0 transition-colors bg-slate-100/50 dark:bg-slate-900 md:h-screen">
-        
         <header class="sticky top-0 z-10 flex items-center justify-between h-16 px-4 transition-colors bg-white border-b shadow-sm dark:bg-slate-800 border-slate-200 dark:border-slate-700 md:px-6">
             <div class="font-bold text-slate-700 dark:text-slate-200">
                 <span v-if="activeTab === 'home'">🏠 Home Dashboard</span>
                 <span v-if="activeTab === 'timesheet'">⏱️ Timesheet Preview</span>
                 <span v-if="activeTab === 'mandays'">📄 Mandays Preview</span>
             </div>
-            
             <div v-if="activeTab !== 'home'" class="flex items-center gap-2 p-1 rounded-lg bg-slate-100 dark:bg-slate-700">
                 <button @click="zoomOut" class="flex items-center justify-center w-6 h-6 font-bold bg-white rounded dark:bg-slate-600 text-slate-600 dark:text-slate-200">-</button>
                 <input type="range" min="0.3" max="1.5" step="0.1" v-model.number="scale" class="w-20 h-2 rounded-lg appearance-none cursor-pointer md:w-32 bg-slate-200">
                 <button @click="zoomIn" class="flex items-center justify-center w-6 h-6 font-bold bg-white rounded dark:bg-slate-600 text-slate-600 dark:text-slate-200">+</button>
                 <button @click="fitScreen" class="hidden md:block px-2 py-0.5 text-[10px] font-bold text-blue-600 bg-blue-50 rounded ml-1 hover:bg-blue-100">FIT</button>
             </div>
-            
             <button v-if="activeTab !== 'home'" @click="printFromIframe" :disabled="!htmlContent" class="px-4 py-2 text-xs font-bold text-white transition-all bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 md:text-sm active:scale-95 disabled:opacity-50">
                 Save / Print
             </button>
         </header>
         
         <div class="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 flex justify-center items-start bg-slate-200/50 dark:bg-slate-950/50 min-h-[500px] relative">
-            
             <div v-if="activeTab !== 'home'" ref="previewContainer">
                 <div v-if="htmlContent" class="transition-transform duration-200 bg-white shadow-2xl origin-top-center" :style="{ transform: `scale(${scale})`, transformOrigin: 'top center', width: '1123px', height: '794px', flexShrink: 0 }">
                     <iframe id="preview-frame" :srcdoc="htmlContent" class="block w-full h-full border-none"></iframe>
@@ -136,7 +134,6 @@
                     </button>
                 </div>
             </div>
-
         </div>
     </main>
     </div>

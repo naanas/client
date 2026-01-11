@@ -1,6 +1,7 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 
+// --- GLOBAL STATE (SINGLETON) ---
 const STORAGE_KEY = 'timesheet_data_v1';
 const THEME_KEY = 'timesheet_theme';
 const JIRA_BASE_URL = 'https://pegadaian.atlassian.net/browse/';
@@ -12,7 +13,12 @@ const isLoading = ref(false);
 const isSyncing = ref(false);
 const isRefreshing = ref(false);
 const isAssigneeLoading = ref(false);
-const isPaymentLoading = ref(false); // State Loading Payment
+const isPaymentLoading = ref(false);
+
+// --- MODAL STATE (NEW) ---
+const isEmailModalOpen = ref(false);
+const emailRecipient = ref('');
+const pendingExportType = ref<'timesheet' | 'mandays'>('timesheet');
 
 const htmlContent = ref('');
 const scale = ref(0.6);
@@ -103,31 +109,40 @@ export function useTimesheet() {
     } catch (error) { alert(`Gagal download Excel ${label}.`); }
   };
 
-  // --- LOGIC XENDIT PAYMENT ---
-  const payAndExportPdf = async (type: 'timesheet' | 'mandays') => {
-      const email = prompt("Masukkan email untuk menerima file PDF:");
-      if (!email) return;
+  // --- PAYMENT LOGIC (UPDATED) ---
+  
+  // 1. Trigger Modal (Dipanggil tombol)
+  const openPaymentModal = (type: 'timesheet' | 'mandays') => {
+      pendingExportType.value = type;
+      isEmailModalOpen.value = true;
+  };
+
+  // 2. Eksekusi Pembayaran (Dipanggil dari Modal)
+  const processPayment = async () => {
+      if (!emailRecipient.value) {
+          alert("Email wajib diisi!");
+          return;
+      }
 
       isPaymentLoading.value = true;
       try {
           const { data } = await axios.post(`${API_URL}/api/payment/create`, {
-              type,
+              type: pendingExportType.value,
               employee: employee.value,
               tasks: regularTasks.value,
               overtimeTasks: overtimeTasks.value,
-              email: email
+              email: emailRecipient.value
           });
 
           if (data.invoiceUrl) {
-              // Redirect User ke Halaman Bayar Xendit
               window.location.href = data.invoiceUrl;
           }
       } catch (err) {
           alert("Gagal membuat pembayaran. Cek koneksi backend.");
           console.error(err);
-      } finally {
-          isPaymentLoading.value = false;
+          isPaymentLoading.value = false; // Matikan loading jika gagal
       }
+      // Note: Jika sukses redirect, loading tidak perlu dimatikan karena halaman akan pindah
   };
 
   const autoFillLink = (task: any) => {
@@ -162,11 +177,13 @@ export function useTimesheet() {
 
   return {
     employee, regularTasks, overtimeTasks, assigneeList, 
-    isDarkMode, isLoading, isSyncing, isRefreshing, isAssigneeLoading, isPaymentLoading,
+    isDarkMode, isLoading, isSyncing, isRefreshing, isAssigneeLoading, 
     isAppLoading, htmlContent, scale, previewContainer, enhancingId,
-    syncData, fetchAssignees, enhanceDescription, loadPreview, 
-    downloadExcel,   
-    payAndExportPdf, // Fungsi Baru
+    // Export State & Functions
+    isPaymentLoading, isEmailModalOpen, emailRecipient, pendingExportType,
+    openPaymentModal, processPayment,
+    // Utils
+    syncData, fetchAssignees, enhanceDescription, loadPreview, downloadExcel,
     autoFillLink, isWeekend, toggleDarkMode, fitScreen, printFromIframe,
     zoomIn: () => scale.value < 2 ? scale.value += 0.1 : null,
     zoomOut: () => scale.value > 0.3 ? scale.value -= 0.1 : null,
