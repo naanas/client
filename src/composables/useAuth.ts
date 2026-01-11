@@ -15,14 +15,49 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const user = ref<any>(null);
 const userRole = ref<string>('user'); // Default role 'user'
 
+// Flag biar interceptor gak dipasang berkali-kali kalau useAuth dipanggil di banyak tempat
+let isInterceptorSetup = false;
+
 export function useAuth() {
   const loading = ref(true); 
   const authError = ref('');
 
+  // --- 1. SETUP AXIOS INTERCEPTOR (PENJAGA PINTU) ---
+  if (!isInterceptorSetup) {
+      axios.interceptors.response.use(
+        (response) => response,
+        (error) => {
+          // Cek error 401 (Unauthorized) atau 403 (Forbidden)
+          if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+            
+            // Cek URL request, jangan redirect kalau errornya pas lagi coba Login (biar gak loop alert)
+            const isLoginRequest = error.config.url.includes('/login');
+
+            if (!isLoginRequest) {
+                console.warn("💀 Session expired. The pact is broken.");
+                
+                // BERSIHKAN JEJAK (Manual cleanup biar aman)
+                localStorage.removeItem(TOKEN_KEY);
+                delete axios.defaults.headers.common['Authorization'];
+                user.value = null;
+                userRole.value = 'user';
+
+                // Pesan Satanic
+                alert("⏳ Kontrak jiwamu berakhir (Session Expired). Silakan login ulang.");
+                
+                // TENDANG KE HALAMAN LOGIN
+                window.location.href = '/auth'; 
+            }
+          }
+          return Promise.reject(error);
+        }
+      );
+      isInterceptorSetup = true; // Tandai sudah dipasang
+  }
+
   // Helper: Fetch Role dari tabel 'profiles'
   const fetchUserRole = async (userId: string) => {
     try {
-      // HAPUS 'error' DARI DESTRUCTURING AGAR TIDAK ERROR TYPESCRIPT
       const { data } = await supabase
         .from('profiles')
         .select('role')
@@ -67,8 +102,9 @@ export function useAuth() {
       }
 
     } catch (e) {
-      console.log('Session expired / Invalid Token');
-      handleLogout();
+      console.log('Session expired / Invalid Token saat Check Session');
+      // Jangan handleLogout di sini karena interceptor di atas udah nanganin 401
+      // Tapi kalau error network lain, set loading false
     } finally {
       loading.value = false;
     }
@@ -80,10 +116,10 @@ export function useAuth() {
     
     try {
       await axios.post(`${API_URL}/api/auth/register`, { email, password: pass });
-      alert('Registrasi berhasil! Silakan Login.');
+      alert('Jiwa baru terdaftar. Silakan masuk.');
       return true;
     } catch (e: any) {
-      authError.value = e.response?.data?.error || 'Registrasi Gagal';
+      authError.value = e.response?.data?.error || 'Ritual Gagal (Register Error)';
       return false;
     } finally { 
       loading.value = false; 
@@ -110,7 +146,7 @@ export function useAuth() {
         }
       }
     } catch (e: any) {
-      authError.value = e.response?.data?.error || 'Login Gagal';
+      authError.value = 'Mantra salah (Email/Password Invalid)';
     } finally { 
       loading.value = false; 
     }

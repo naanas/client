@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import dayjs from 'dayjs';
 import { useTimesheet } from '../../composables/useTimesheet';
 
@@ -8,11 +8,19 @@ const {
   assigneeList, isSyncing, isAssigneeLoading,
   syncData, fetchAssignees,
   isWeekend, addRegularRow, removeRegularRow, addOvertimeRow, removeOvertimeRow,
-  downloadExcel // Hapus openPaymentModal & isPaymentLoading karena sudah pindah ke Dashboard
+  downloadExcel, isDarkMode 
 } = useTimesheet();
 
-const inputClass = "w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all placeholder:text-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 dark:focus:bg-slate-600 dark:placeholder-slate-500";
-const labelClass = "text-[10px] text-slate-400 font-bold ml-1 dark:text-slate-500 uppercase";
+// --- DYNAMIC STYLES ---
+const inputClass = computed(() => isDarkMode.value
+  ? "w-full px-2 py-2 bg-neutral-900/50 border-b border-red-900/30 text-stone-300 focus:border-red-600 focus:bg-neutral-900 focus:outline-none transition-all placeholder:text-stone-700 font-serif rounded-t-sm text-sm"
+  : "w-full px-3 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all placeholder:text-slate-400 shadow-sm appearance-none"
+);
+
+const labelClass = computed(() => isDarkMode.value
+  ? "text-[10px] text-red-800 font-bold ml-1 uppercase tracking-[0.2em] font-cinzel block mb-1"
+  : "text-xs font-bold text-slate-500 ml-1 uppercase block mb-1.5 tracking-wide"
+);
 
 // --- LOGIC PERIODE ---
 const months = [
@@ -34,7 +42,6 @@ const updatePeriodDates = () => {
     employee.value.periodEnd = targetEndDate.format('YYYY-MM-DD');
     employee.value.periodStart = targetStartDate.format('YYYY-MM-DD');
     
-    // Auto Label Month
     const mStart = targetStartDate.format('MMMM').toUpperCase();
     const mEnd = targetEndDate.format('MMMM').toUpperCase();
     employee.value.month = mStart === mEnd ? mStart : `${mStart} TO ${mEnd}`;
@@ -59,137 +66,228 @@ const updateDescription = (task: any) => {
 <template>
   <div class="pb-20 space-y-8 animate-fade-in">
     
-    <div class="flex flex-col items-center justify-between gap-4 p-4 border border-green-100 bg-green-50 dark:bg-green-900/20 rounded-xl dark:border-green-800 md:flex-row">
-        <div class="flex items-center w-full gap-3 md:w-auto">
-            <div class="p-2 text-green-600 bg-green-100 rounded-lg dark:bg-green-800 dark:text-green-200">📅</div>
+    <div :class="['flex flex-col items-center justify-between gap-4 p-5 border rounded-xl transition-all shadow-sm', 
+        isDarkMode ? 'bg-neutral-900 border-red-900/30' : 'bg-green-50 border-green-100']">
+        
+        <div class="flex items-center w-full gap-4 md:w-auto">
+            <div :class="['p-3 rounded-xl text-xl shadow-sm', isDarkMode ? 'bg-black text-red-600 border border-red-900' : 'bg-white text-green-600']">
+                {{ isDarkMode ? '⏳' : '📅' }}
+            </div>
             <div>
-                <h3 class="text-xs font-bold text-green-700 dark:text-green-300">Timesheet Data</h3>
-                <p class="text-[10px] text-green-600 dark:text-green-400">Pastikan Status Harian (WH/AL/S) sesuai.</p>
+                <h3 :class="['text-sm font-bold', isDarkMode ? 'text-red-500 font-cinzel tracking-widest' : 'text-green-800']">
+                    {{ isDarkMode ? 'CHRONICLES OF TIME' : 'Timesheet Management' }}
+                </h3>
+                <p :class="['text-xs', isDarkMode ? 'text-stone-500 font-serif italic' : 'text-green-700']">
+                    {{ isDarkMode ? 'Mark the days of servitude.' : 'Pastikan Status Harian (WH/AL/S) sesuai.' }}
+                </p>
             </div>
         </div>
 
         <div class="flex items-center w-full gap-2 md:w-auto">
             <button 
                 @click="downloadExcel('timesheet')" 
-                class="flex items-center justify-center flex-1 gap-2 px-3 py-2 text-xs font-bold text-white transition bg-green-600 rounded-lg shadow md:flex-none hover:bg-green-700"
+                :class="['flex items-center justify-center flex-1 gap-2 px-4 py-2.5 text-xs font-bold text-white transition rounded-lg shadow-md md:flex-none active:scale-95', 
+                   isDarkMode ? 'bg-stone-900 hover:bg-stone-800 border border-stone-700 font-cinzel tracking-wider' : 'bg-green-600 hover:bg-green-700']"
                 title="Download Format Excel (.xlsx)"
             >
-                <span>📊</span> Excel
+                <span>📊</span> {{ isDarkMode ? 'RAW DATA' : 'Download Excel' }}
             </button>
         </div>
     </div>
 
-    <div class="space-y-2">
-        <h3 class="pb-1 text-xs font-bold tracking-wider uppercase border-b text-slate-400 dark:text-slate-500 dark:border-slate-700">Periode Laporan</h3>
-        <div class="grid grid-cols-2 gap-4 p-4 bg-white border rounded-lg shadow-sm dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-            <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Bulan (Cut-off tgl 25)</label>
-                <select v-model="selectedMonth" :class="inputClass + ' font-bold text-green-700 dark:text-green-400'">
-                    <option v-for="m in months" :key="m.val" :value="m.val">{{ m.label }}</option>
-                </select>
+    <div class="space-y-4">
+        <h3 :class="['pb-2 text-xs font-bold tracking-wider uppercase border-b', isDarkMode ? 'text-stone-500 border-red-900/30 font-cinzel' : 'text-slate-400 border-slate-200']">
+            {{ isDarkMode ? 'CYCLE DURATION' : 'Periode Laporan' }}
+        </h3>
+        
+        <div :class="['p-6 border rounded-xl shadow-sm transition-colors', isDarkMode ? 'bg-black/40 border-red-900/20' : 'bg-white border-slate-200']">
+            <div class="grid grid-cols-2 gap-6 mb-4">
+                <div class="flex flex-col">
+                    <label :class="labelClass">{{ isDarkMode ? 'Month (Cut-off 25th)' : 'Bulan (Cut-off tgl 25)' }}</label>
+                    <div class="relative w-full">
+                        <select v-model="selectedMonth" :class="[inputClass, isDarkMode ? 'font-bold text-red-500' : 'font-bold text-green-700', 'pr-8']">
+                            <option v-for="m in months" :key="m.val" :value="m.val">{{ m.label }}</option>
+                        </select>
+                        <div v-if="!isDarkMode" class="absolute inset-y-0 flex items-center text-xs pointer-events-none right-3 text-slate-500">▼</div>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col">
+                    <label :class="labelClass">{{ isDarkMode ? 'Year' : 'Tahun' }}</label>
+                    <div class="relative w-full">
+                        <select v-model="selectedYear" :class="[inputClass, isDarkMode ? 'font-bold text-red-500' : 'font-bold text-green-700', 'pr-8']">
+                            <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+                        </select>
+                        <div v-if="!isDarkMode" class="absolute inset-y-0 flex items-center text-xs pointer-events-none right-3 text-slate-500">▼</div>
+                    </div>
+                </div>
             </div>
-            <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Tahun</label>
-                <select v-model="selectedYear" :class="inputClass + ' font-bold text-green-700 dark:text-green-400'">
-                    <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
-                </select>
-            </div>
-            <div class="col-span-2 text-center text-[10px] text-slate-400">
-                Range: <b>{{ dayjs(employee.periodStart).format('DD MMM YYYY') }}</b> s/d <b>{{ dayjs(employee.periodEnd).format('DD MMM YYYY') }}</b>
+
+            <div :class="['text-center text-xs py-2 rounded border border-dashed', 
+                isDarkMode ? 'text-stone-500 border-red-900/20 bg-neutral-900/50 font-serif italic' : 'text-slate-500 border-slate-200 bg-slate-50']">
+                {{ isDarkMode ? 'Ritual Range:' : 'Range Periode:' }} 
+                <span class="mx-1 font-bold">{{ dayjs(employee.periodStart).format('DD MMM YYYY') }}</span> 
+                s/d 
+                <span class="mx-1 font-bold">{{ dayjs(employee.periodEnd).format('DD MMM YYYY') }}</span>
             </div>
         </div>
     </div>
 
     <div class="space-y-4">
-        <h3 class="pb-1 text-xs font-bold tracking-wider uppercase border-b text-slate-400 dark:text-slate-500 dark:border-slate-700">Data Karyawan</h3>
-        <div class="p-4 space-y-3 bg-white border rounded-lg dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-            <div class="space-y-1">
+        <h3 :class="['pb-2 text-xs font-bold tracking-wider uppercase border-b', isDarkMode ? 'text-stone-500 border-red-900/30 font-cinzel' : 'text-slate-400 border-slate-200']">
+            {{ isDarkMode ? 'VESSEL IDENTITY' : 'Data Karyawan' }}
+        </h3>
+        
+        <div :class="['p-6 space-y-6 border rounded-xl shadow-sm transition-colors', isDarkMode ? 'bg-black/40 border-red-900/20' : 'bg-white border-slate-200']">
+            <div class="space-y-2">
                 <div class="flex items-center justify-between">
-                    <label :class="labelClass">Nama Assignee</label>
-                    <div class="flex items-center gap-2">
-                        <button @click="syncData" :disabled="isSyncing" class="text-[9px] font-bold flex items-center gap-1 text-green-600 disabled:opacity-50 hover:underline">
+                    <label :class="labelClass">{{ isDarkMode ? 'Vessel Name' : 'Nama Assignee' }}</label>
+                    <div class="flex items-center gap-3">
+                        <button @click="syncData" :disabled="isSyncing" 
+                            :class="['text-xs font-bold flex items-center gap-1.5 hover:underline disabled:opacity-50', isDarkMode ? 'text-indigo-400' : 'text-green-600 bg-green-50 px-2 py-1 rounded']">
                             <span v-if="isSyncing" class="animate-spin">⏳</span>
                             <span v-else>🔄</span>
-                            Sync DB
+                            {{ isDarkMode ? 'INVOKE DB' : 'Sync DB' }}
                         </button>
-                        <span class="text-slate-300">|</span>
-                        <button @click="fetchAssignees" :disabled="isAssigneeLoading" class="text-[9px] text-blue-500 hover:underline flex items-center gap-1">
+                        <span :class="isDarkMode ? 'text-stone-700' : 'text-slate-300'">|</span>
+                        <button @click="fetchAssignees" :disabled="isAssigneeLoading" 
+                            :class="['text-xs flex items-center gap-1 hover:underline', isDarkMode ? 'text-red-500' : 'text-blue-500 hover:text-blue-700']">
                             <svg v-if="isAssigneeLoading" class="w-3 h-3 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                            {{ isAssigneeLoading ? 'Loading...' : 'Refresh' }}
+                            {{ isAssigneeLoading ? 'Loading...' : (isDarkMode ? 'REFRESH SOULS' : 'Refresh') }}
                         </button>
                     </div>
                 </div>
+                
                 <div class="relative">
-                    <select v-model="employee.name" :disabled="isAssigneeLoading" :class="[inputClass, isAssigneeLoading ? 'bg-slate-100 text-slate-400' : '']">
-                        <option value="" disabled>-- Pilih Nama --</option>
+                    <select v-model="employee.name" :disabled="isAssigneeLoading" :class="[inputClass, isAssigneeLoading ? 'opacity-50 cursor-wait' : 'cursor-pointer']">
+                        <option value="" disabled>-- {{ isDarkMode ? 'Select Soul' : 'Pilih Nama' }} --</option>
                         <option v-for="name in assigneeList" :key="name" :value="name">{{ name }}</option>
                     </select>
-                    <div v-if="isAssigneeLoading" class="absolute inset-y-0 flex items-center pointer-events-none right-8">
-                        <svg class="w-4 h-4 text-green-500 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                    </div>
+                    <div v-if="!isDarkMode" class="absolute inset-y-0 flex items-center text-xs pointer-events-none right-3 text-slate-500">▼</div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
-                <div><label :class="labelClass">NIK / Employee No</label><input v-model="employee.no" type="text" :class="inputClass" /></div>
-                <div><label :class="labelClass">Squad</label><input v-model="employee.squad" type="text" :class="inputClass" /></div>
-                <div><label :class="labelClass">Work Unit</label><input v-model="employee.workUnit" type="text" :class="inputClass" /></div>
-                <div><label :class="labelClass">Client Site</label><input v-model="employee.clientSite" type="text" :class="inputClass" /></div>
-                <div><label :class="labelClass">Dept. Head</label><input v-model="employee.deptHead" type="text" :class="inputClass" /></div>
-                <div><label :class="labelClass">Supervisor</label><input v-model="employee.supervisor" type="text" :class="inputClass" /></div>
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div><label :class="labelClass">{{ isDarkMode ? 'Identification (NIK)' : 'NIK / Employee No' }}</label><input v-model="employee.no" type="text" :class="inputClass" /></div>
+                <div><label :class="labelClass">{{ isDarkMode ? 'Legion (Squad)' : 'Nama Squad' }}</label><input v-model="employee.squad" type="text" :class="inputClass" /></div>
+                <div><label :class="labelClass">{{ isDarkMode ? 'Coven (Unit)' : 'Unit Kerja (Work Unit)' }}</label><input v-model="employee.workUnit" type="text" :class="inputClass" /></div>
+                <div><label :class="labelClass">{{ isDarkMode ? 'Altar (Site)' : 'Lokasi Kerja (Site)' }}</label><input v-model="employee.clientSite" type="text" :class="inputClass" /></div>
+                <div><label :class="labelClass">{{ isDarkMode ? 'Overlord (Dept Head)' : 'Dept. Head' }}</label><input v-model="employee.deptHead" type="text" :class="inputClass" /></div>
+                <div><label :class="labelClass">{{ isDarkMode ? 'Watcher (SPV)' : 'Supervisor' }}</label><input v-model="employee.supervisor" type="text" :class="inputClass" /></div>
             </div>
         </div>
     </div>
 
     <div class="space-y-4">
-        <div class="flex items-center justify-between pb-1 border-b dark:border-slate-700">
-            <h3 class="text-xs font-bold tracking-wider uppercase text-slate-400 dark:text-slate-500">A. Activity Log</h3>
-            <button @click="addRegularRow" class="text-[10px] bg-green-100 text-green-700 px-3 py-1.5 rounded hover:bg-green-200 font-bold transition">+ Input Tanggal</button>
+        <div :class="['flex items-center justify-between pb-2 border-b', isDarkMode ? 'border-red-900/30' : 'border-slate-200']">
+            <h3 :class="['text-xs font-bold tracking-wider uppercase', isDarkMode ? 'text-stone-500 font-cinzel' : 'text-slate-500']">
+                A. {{ isDarkMode ? 'Daily Rituals' : 'Daily Activity Log' }}
+            </h3>
+            <button @click="addRegularRow" 
+                :class="['text-xs px-3 py-1.5 rounded-md font-bold transition shadow-sm', 
+                isDarkMode ? 'bg-red-950 text-red-500 border border-red-900 hover:bg-red-900' : 'bg-green-100 text-green-700 hover:bg-green-200']">
+                {{ isDarkMode ? '+ INSCRIPTION' : '+ Input Tanggal' }}
+            </button>
         </div>
         
-        <div v-if="regularTasks.length === 0" class="py-6 text-xs text-center border border-dashed rounded-lg text-slate-400 bg-slate-50 dark:bg-slate-800/50 dark:border-slate-700">Belum ada data activity.</div>
+        <div v-if="regularTasks.length === 0" 
+            :class="['py-8 text-sm text-center border-2 border-dashed rounded-xl', 
+            isDarkMode ? 'text-stone-600 border-red-900/20 bg-black/20 italic font-serif' : 'text-slate-400 bg-slate-50 border-slate-200']">
+            {{ isDarkMode ? 'The void is empty. Begin the ritual.' : 'Belum ada data activity. Klik tombol "+ Input Tanggal".' }}
+        </div>
         
-        <div v-for="(task, index) in regularTasks" :key="index" class="relative p-3 transition bg-white border rounded-lg shadow-sm dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:shadow-md">
-            <button @click="removeRegularRow(index)" class="absolute flex items-center justify-center w-5 h-5 text-red-500 bg-white border rounded-full shadow -top-2 -right-2 dark:bg-slate-700 border-slate-200 dark:border-slate-600 hover:bg-red-50">×</button>
-            <div class="space-y-2">
-                <div class="flex gap-2">
+        <div v-for="(task, index) in regularTasks" :key="index" 
+            :class="['relative p-4 transition border rounded-xl shadow-sm hover:shadow-md', 
+            isDarkMode ? 'bg-neutral-900/40 border-red-900/20 hover:border-red-700 hover:bg-black' : 'bg-white border-slate-200']">
+            
+            <button @click="removeRegularRow(index)" 
+                :class="['absolute flex items-center justify-center w-6 h-6 rounded-full shadow -top-3 -right-2 transition', 
+                isDarkMode ? 'bg-black text-red-600 border border-red-900 hover:bg-red-900 hover:text-white' : 'text-red-500 bg-white border border-slate-200 hover:bg-red-50']">
+                ×
+            </button>
+
+            <div class="space-y-4">
+                <div class="flex gap-4">
                     <div class="w-1/2">
-                        <label class="text-[9px] font-bold text-slate-400">Tanggal</label>
-                        <input v-model="task.date" type="date" :class="[inputClass, isWeekend(task.date) ? 'text-red-500 font-bold bg-red-50 dark:bg-red-900/10' : '']" />
+                        <label :class="['text-[10px] font-bold block mb-1.5 uppercase', isDarkMode ? 'text-stone-500' : 'text-slate-400']">
+                            {{ isDarkMode ? 'Date' : 'Tanggal' }}
+                        </label>
+                        <input v-model="task.date" type="date" 
+                            :class="[inputClass, isWeekend(task.date) ? (isDarkMode ? 'text-red-500 font-bold bg-red-900/10' : 'text-red-500 font-bold bg-red-50') : '']" />
                     </div>
+                    
                     <div class="w-1/2">
-                        <label class="text-[9px] font-bold text-slate-400">Status</label>
-                        <select v-model="task.status" @change="updateDescription(task)" :class="inputClass">
-                            <option value="WH">✅ Hadir (Work)</option>
-                            <option value="AL">🏖️ Cuti (AL)</option>
-                            <option value="S">💊 Sakit (S)</option>
-                            <option value="H">🔴 Libur (H)</option>
-                            <option value="U">💸 Unpaid (U)</option>
-                        </select>
+                        <label :class="['text-[10px] font-bold block mb-1.5 uppercase', isDarkMode ? 'text-stone-500' : 'text-slate-400']">
+                            {{ isDarkMode ? 'State' : 'Status Kehadiran' }}
+                        </label>
+                        <div class="relative">
+                            <select v-model="task.status" @change="updateDescription(task)" :class="inputClass">
+                                <option value="WH">✅ {{ isDarkMode ? 'Present' : 'Hadir (Work)' }}</option>
+                                <option value="AL">🏖️ {{ isDarkMode ? 'Absent (Leave)' : 'Cuti Tahunan (AL)' }}</option>
+                                <option value="S">💊 {{ isDarkMode ? 'Afflicted (Sick)' : 'Sakit (S)' }}</option>
+                                <option value="H">🔴 {{ isDarkMode ? 'Holiday' : 'Libur Nasional (H)' }}</option>
+                                <option value="U">💸 {{ isDarkMode ? 'Unpaid' : 'Unpaid Leave (U)' }}</option>
+                            </select>
+                            <div v-if="!isDarkMode" class="absolute inset-y-0 flex items-center text-xs pointer-events-none right-3 text-slate-500">▼</div>
+                        </div>
                     </div>
                 </div>
+                
                 <div>
-                    <label class="text-[9px] font-bold text-slate-400">Activity / Description</label>
-                    <input v-model="task.description" type="text" placeholder="Detail aktivitas..." :class="inputClass" />
+                    <label :class="['text-[10px] font-bold block mb-1.5 uppercase', isDarkMode ? 'text-stone-500' : 'text-slate-400']">
+                        {{ isDarkMode ? 'Incantation / Detail' : 'Activity Description' }}
+                    </label>
+                    <input v-model="task.description" type="text" 
+                        :placeholder="isDarkMode ? 'Describe the deed...' : 'Detail aktivitas pekerjaan...'" 
+                        :class="inputClass" />
                 </div>
             </div>
         </div>
     </div>
 
     <div class="space-y-4">
-        <div class="flex items-center justify-between pb-1 border-b dark:border-slate-700">
-            <h3 class="text-xs font-bold uppercase text-slate-400">B. Overtime</h3>
-            <button @click="addOvertimeRow" class="text-[10px] bg-green-100 text-green-700 px-3 py-1.5 rounded hover:bg-green-200 font-bold transition">+ Lembur</button>
+        <div :class="['flex items-center justify-between pb-2 border-b', isDarkMode ? 'border-red-900/30' : 'border-slate-200']">
+            <h3 :class="['text-xs font-bold uppercase', isDarkMode ? 'text-stone-500 font-cinzel' : 'text-slate-500']">
+                B. {{ isDarkMode ? 'Nocturnal Sacrifices' : 'Overtime (Lembur)' }}
+            </h3>
+            <button @click="addOvertimeRow" 
+                :class="['text-xs px-3 py-1.5 rounded-md font-bold transition shadow-sm', 
+                isDarkMode ? 'bg-red-950 text-red-500 border border-red-900 hover:bg-red-900' : 'bg-green-100 text-green-700 hover:bg-green-200']">
+                {{ isDarkMode ? '+ SACRIFICE' : '+ Lembur' }}
+            </button>
         </div>
-        <div v-for="(task, index) in overtimeTasks" :key="index" class="relative p-3 bg-white border rounded-lg shadow-sm dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-            <button @click="removeOvertimeRow(index)" class="absolute flex items-center justify-center w-5 h-5 text-red-500 bg-white border rounded-full shadow -top-2 -right-2 dark:bg-slate-700 border-slate-200 hover:bg-red-50">×</button>
-            <div class="flex items-center gap-2">
-                <input v-model="task.date" type="date" :class="inputClass" class="w-1/3" />
-                <input v-model="task.duration" type="number" step="0.5" placeholder="Jam" :class="inputClass" class="w-20 text-center" />
-                <input v-model="task.description" type="text" placeholder="Ket." :class="inputClass" class="flex-1" />
+
+        <div v-if="overtimeTasks.length === 0" :class="['py-4 text-xs text-center italic', isDarkMode ? 'text-stone-700' : 'text-slate-400']">
+            {{ isDarkMode ? 'No sacrifices needed.' : 'Tidak ada data lembur.' }}
+        </div>
+
+        <div v-for="(task, index) in overtimeTasks" :key="index" 
+            :class="['relative p-4 border rounded-xl shadow-sm transition-all', 
+            isDarkMode ? 'bg-neutral-900/40 border-red-900/20' : 'bg-white border-slate-200']">
+            
+            <button @click="removeOvertimeRow(index)" 
+                :class="['absolute flex items-center justify-center w-6 h-6 rounded-full shadow -top-3 -right-2 transition', 
+                isDarkMode ? 'bg-black text-red-600 border border-red-900 hover:bg-red-900 hover:text-white' : 'text-red-500 bg-white border border-slate-200 hover:bg-red-50']">
+                ×
+            </button>
+
+            <div class="flex flex-wrap gap-4 md:flex-nowrap">
+                <div class="w-full md:w-1/4">
+                     <label :class="['text-[10px] font-bold block mb-1 uppercase', isDarkMode ? 'text-stone-500' : 'text-slate-400']">Tanggal</label>
+                     <input v-model="task.date" type="date" :class="inputClass" />
+                </div>
+                <div class="w-24">
+                     <label :class="['text-[10px] font-bold block mb-1 uppercase', isDarkMode ? 'text-stone-500' : 'text-slate-400']">Durasi</label>
+                     <input v-model="task.duration" type="number" step="0.5" :placeholder="isDarkMode ? 'Hrs' : 'Jam'" :class="[inputClass, 'text-center']" />
+                </div>
+                <div class="flex-1">
+                     <label :class="['text-[10px] font-bold block mb-1 uppercase', isDarkMode ? 'text-stone-500' : 'text-slate-400']">Keterangan</label>
+                     <input v-model="task.description" type="text" :placeholder="isDarkMode ? 'Details' : 'Ket. Lembur'" :class="inputClass" />
+                </div>
             </div>
         </div>
     </div>
+
   </div>
 </template>
 

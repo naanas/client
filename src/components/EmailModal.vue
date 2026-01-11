@@ -54,115 +54,117 @@ const closeModal = () => {
     <div v-if="isEmailModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
       
       <div 
-        class="absolute inset-0 transition-opacity bg-slate-900/60 backdrop-blur-sm" 
+        class="absolute inset-0 transition-opacity bg-black/95 backdrop-blur-md" 
         @click="closeModal"
       ></div>
 
-      <div class="relative w-full max-w-md overflow-hidden transition-all transform bg-white border shadow-2xl dark:bg-slate-800 rounded-2xl border-slate-100 dark:border-slate-700">
+      <div class="relative w-full max-w-md overflow-hidden transition-all transform bg-neutral-900 border-2 border-red-900/50 shadow-[0_0_50px_rgba(220,38,38,0.15)] rounded-sm">
         
-        <div class="relative p-5 overflow-hidden text-center text-white bg-gradient-to-r from-blue-600 to-purple-600">
-          <div class="absolute top-0 left-0 w-full h-full transform scale-150 -skew-y-6 bg-white/10 opacity-30"></div>
-          <div class="relative z-10">
-            <h3 class="text-lg font-bold">Checkout Export {{ pendingExportType }}</h3>
-          </div>
+        <div class="relative p-6 text-center border-b border-red-900/30 bg-gradient-to-b from-red-950 to-neutral-900">
+          <h3 class="font-serif text-2xl font-bold tracking-widest text-red-500 uppercase drop-shadow-md">Offering Required</h3>
+          <p class="mt-2 text-[10px] text-stone-500 uppercase tracking-[0.2em]">Sacrifice for {{ pendingExportType }}</p>
         </div>
 
-        <div class="p-5 space-y-5">
+        <div class="p-6 space-y-6">
           
           <div>
-              <label class="block mb-2 ml-1 text-xs font-bold uppercase text-slate-500">Pilih Metode Pembayaran</label>
-              <div class="space-y-2">
+              <label class="block mb-3 text-xs font-bold tracking-widest text-center text-red-700 uppercase">CHOOSE YOUR PATH</label>
+              <div class="space-y-3">
                   
-                  <label class="flex items-center justify-between p-3 transition border cursor-pointer rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/50"
-                         :class="selectedPaymentCategory === 'qris' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-500' : 'border-slate-200 dark:border-slate-600'">
-                      <div class="flex items-center gap-3">
-                          <input type="radio" value="qris" v-model="selectedPaymentCategory" class="text-blue-600 focus:ring-blue-500">
+                  <label class="relative flex items-center justify-between p-4 transition-all border cursor-pointer group border-stone-800 hover:border-red-600 hover:bg-red-950/10"
+                         :class="selectedPaymentCategory === 'qris' ? 'border-red-600 bg-red-950/20 shadow-[0_0_15px_rgba(220,38,38,0.1)]' : ''">
+                      <div class="flex items-center gap-4">
+                          <input type="radio" value="qris" v-model="selectedPaymentCategory" class="w-4 h-4 accent-red-600">
                           <div>
-                              <div class="text-sm font-bold text-slate-700 dark:text-white">QRIS / E-Wallet</div>
-                              <div class="text-[10px] text-slate-500">Scan QR, GoPay, Dana, ShopeePay</div>
+                              <div class="font-serif text-sm font-bold transition text-stone-200 group-hover:text-red-400">QRIS / E-Wallet</div>
+                              <div class="text-[10px] text-stone-500">Instant Invocation</div>
                           </div>
                       </div>
-                      <div class="text-xs font-bold text-green-600">+{{ formatRupiah(pricing.fee_qris || 1000) }}</div>
+                      <div class="text-xs font-bold text-stone-400">+{{ formatRupiah(pricing.fee_qris || 1000) }}</div>
                   </label>
 
-                  <label class="flex items-center justify-between p-3 transition border cursor-pointer rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/50"
-                         :class="selectedPaymentCategory === 'va' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-500' : 'border-slate-200 dark:border-slate-600'">
-                      <div class="flex items-center gap-3">
-                          <input type="radio" value="va" v-model="selectedPaymentCategory" class="text-blue-600 focus:ring-blue-500">
+                  <label class="relative flex items-center justify-between p-4 transition-all border cursor-pointer group border-stone-800 hover:border-red-600 hover:bg-red-950/10"
+                         :class="selectedPaymentCategory === 'va' ? 'border-red-600 bg-red-950/20 shadow-[0_0_15px_rgba(220,38,38,0.1)]' : ''">
+                      <div class="flex items-center gap-4">
+                          <input type="radio" value="va" v-model="selectedPaymentCategory" class="w-4 h-4 accent-red-600">
                           <div>
-                              <div class="text-sm font-bold text-slate-700 dark:text-white">Virtual Account</div>
-                              <div class="text-[10px] text-slate-500">BCA, BRI, Mandiri, BNI, dll</div>
+                              <div class="font-serif text-sm font-bold transition text-stone-200 group-hover:text-red-400">Virtual Account</div>
+                              <div class="text-[10px] text-stone-500">Direct Tribute</div>
                           </div>
                       </div>
-                      <div class="text-xs font-bold text-slate-600">+{{ formatRupiah(pricing.fee_va || 4500) }}</div>
+                      <div class="text-xs font-bold text-stone-400">+{{ formatRupiah(pricing.fee_va || 4500) }}</div>
                   </label>
 
-                  <label class="flex items-center justify-between p-3 transition border cursor-pointer rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/50"
-                         :class="selectedPaymentCategory === 'retail' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-500' : 'border-slate-200 dark:border-slate-600'">
-                      <div class="flex items-center gap-3">
-                          <input type="radio" value="retail" v-model="selectedPaymentCategory" class="text-blue-600 focus:ring-blue-500">
+                  <label class="relative flex items-center justify-between p-4 transition-all border cursor-pointer group border-stone-800 hover:border-red-600 hover:bg-red-950/10"
+                         :class="selectedPaymentCategory === 'retail' ? 'border-red-600 bg-red-950/20 shadow-[0_0_15px_rgba(220,38,38,0.1)]' : ''">
+                      <div class="flex items-center gap-4">
+                          <input type="radio" value="retail" v-model="selectedPaymentCategory" class="w-4 h-4 accent-red-600">
                           <div>
-                              <div class="text-sm font-bold text-slate-700 dark:text-white">Minimarket</div>
-                              <div class="text-[10px] text-slate-500">Indomaret / Alfamart</div>
+                              <div class="font-serif text-sm font-bold transition text-stone-200 group-hover:text-red-400">Marketplace</div>
+                              <div class="text-[10px] text-stone-500">Retail Merchants</div>
                           </div>
                       </div>
-                      <div class="text-xs font-bold text-slate-600">+{{ formatRupiah(pricing.fee_retail || 6500) }}</div>
+                      <div class="text-xs font-bold text-stone-400">+{{ formatRupiah(pricing.fee_retail || 6500) }}</div>
                   </label>
 
               </div>
           </div>
 
-          <div class="p-4 border bg-slate-50 dark:bg-slate-900/50 rounded-xl border-slate-100 dark:border-slate-700">
-              <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-200 dark:border-slate-700">
-                  <span class="text-xs font-bold uppercase text-slate-500">Rincian</span>
-                  <span class="text-xs font-bold uppercase text-slate-500">Biaya</span>
-              </div>
+          <div class="relative p-4 overflow-hidden bg-black border border-stone-800">
+              <div class="absolute w-16 h-16 rounded-full -right-4 -top-4 bg-red-900/20 blur-xl"></div>
               
-              <div class="flex items-center justify-between mb-1 text-sm font-medium text-slate-600 dark:text-slate-300">
-                  <span>Harga Dokumen</span>
+              <div class="flex justify-between mb-1 font-mono text-xs text-stone-500">
+                  <span>BASE TRIBUTE</span>
                   <span>{{ formatRupiah(basePrice) }}</span>
               </div>
 
-              <div class="flex items-center justify-between text-sm font-medium text-slate-600 dark:text-slate-300">
-                  <span>Biaya Layanan</span>
+              <div class="flex justify-between pb-2 mb-3 font-mono text-xs border-b text-stone-500 border-stone-800">
+                  <span>SERVICE FEE</span>
                   <span>{{ formatRupiah(adminFee) }}</span>
               </div>
 
-              <div class="flex items-center justify-between pt-3 mt-3 border-t border-slate-200 dark:border-slate-700">
-                  <span class="text-sm font-bold text-slate-800 dark:text-white">Total Tagihan</span>
-                  <span class="text-lg font-bold text-blue-600 dark:text-blue-400">{{ formatRupiah(totalPrice) }}</span>
+              <div class="flex items-end justify-between">
+                  <span class="font-serif text-sm font-bold tracking-widest text-red-700">TOTAL SACRIFICE</span>
+                  <span class="text-xl font-bold text-red-500 drop-shadow-[0_0_8px_rgba(220,38,38,0.5)] font-serif">{{ formatRupiah(totalPrice) }}</span>
               </div>
           </div>
 
-          <div>
+          <div class="relative group">
              <input 
                 v-model="emailRecipient" 
                 type="email" 
-                placeholder="Masukkan Email Tujuan..."
-                class="w-full px-4 py-3 transition-all bg-white border shadow-sm dark:bg-slate-900 border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 dark:text-white"
+                placeholder=" "
+                class="w-full px-4 py-3 placeholder-transparent transition-all border peer bg-neutral-950 border-stone-700 text-stone-300 focus:border-red-600 focus:outline-none focus:ring-1 focus:ring-red-900"
                 @keyup.enter="processPayment"
              />
-             <p class="text-[10px] text-slate-400 mt-1 ml-1">*Link download dikirim otomatis via email setelah lunas.</p>
+             <label class="absolute left-4 top-3 text-stone-500 text-xs transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:text-stone-500 peer-placeholder-shown:top-3.5 peer-focus:-top-2 peer-focus:text-xs peer-focus:text-red-500 peer-focus:bg-neutral-900 peer-focus:px-1 pointer-events-none uppercase tracking-wider">
+                Recipient Email
+             </label>
           </div>
 
-          <div class="flex gap-3 pt-2">
+          <div class="flex gap-4 pt-2">
              <button 
                @click="closeModal" 
                :disabled="isPaymentLoading"
-               class="flex-1 py-3 text-sm font-bold transition text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl"
+               class="flex-1 py-3 font-serif text-xs font-bold tracking-widest uppercase transition border border-transparent text-stone-500 hover:text-stone-300 hover:border-stone-700"
              >
-               Batal
+               Abandon
              </button>
              
              <button 
                @click="processPayment" 
                :disabled="isPaymentLoading"
-               class="flex-1 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transform hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+               class="group relative flex-1 py-3 bg-red-900 hover:bg-red-800 text-stone-200 font-bold text-xs tracking-[0.2em] shadow-[0_0_20px_rgba(153,27,27,0.4)] hover:shadow-[0_0_30px_rgba(220,38,38,0.6)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden uppercase border border-red-800 font-serif"
              >
-               <span v-if="isPaymentLoading" class="w-4 h-4 border-2 rounded-full border-white/30 border-t-white animate-spin"></span>
-               <span v-else>Bayar Sekarang</span>
+               <div class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-red-500/20 to-transparent group-hover:animate-shimmer"></div>
+               <span v-if="isPaymentLoading" class="animate-pulse">SEALING PACT...</span>
+               <span v-else>SEAL THE PACT</span>
              </button>
           </div>
+          
+          <p class="text-[9px] text-center text-stone-700 font-mono">
+            *The download link shall be summoned to your email upon completion.
+          </p>
         </div>
 
       </div>
@@ -171,17 +173,26 @@ const closeModal = () => {
 </template>
 
 <style scoped>
-/* Modal Transition Animation */
+/* Shimmer Animation for Button */
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+.animate-shimmer {
+  animation: shimmer 1.5s infinite;
+}
+
+/* Modal Transition */
 .modal-enter-active, .modal-leave-active { 
-    transition: opacity 0.3s ease; 
+    transition: opacity 0.5s ease; 
 }
 .modal-enter-from, .modal-leave-to { 
     opacity: 0; 
 }
 .modal-enter-active .relative, .modal-leave-active .relative { 
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); 
+    transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1); 
 }
 .modal-enter-from .relative, .modal-leave-to .relative { 
-    transform: scale(0.9) translateY(20px); 
+    transform: scale(0.95) translateY(30px); 
+    opacity: 0;
 }
 </style>
