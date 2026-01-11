@@ -22,11 +22,16 @@ const isEmailModalOpen = ref(false);
 const emailRecipient = ref('');
 const pendingExportType = ref<'timesheet' | 'mandays'>('timesheet');
 
-// Pricing State (FIX: Tambahkan admin_fee disini agar TypeScript kenal)
+// --- NEW: State Pilihan Kategori Bayar ---
+const selectedPaymentCategory = ref<'qris' | 'va' | 'retail'>('qris'); 
+
+// Pricing State (Includes Specific Fees)
 const pricing = ref({
     timesheet_price: 20000,
     mandays_price: 25000,
-    admin_fee: 4500 // <--- INI WAJIB ADA
+    fee_qris: 1000,   // Fee QRIS
+    fee_va: 4500,     // Fee Virtual Account
+    fee_retail: 6500  // Fee Retail
 });
 
 // Preview State
@@ -79,13 +84,17 @@ export function useTimesheet() {
     finally { setTimeout(() => { isRefreshing.value = false; isAssigneeLoading.value = false; }, 500); }
   };
 
-  // Ambil Harga dari Backend (Admin Config)
+  // Ambil Harga & Fee Lengkap dari Backend
   const fetchPricing = async () => {
     try {
         const { data } = await axios.get(`${API_URL}/api/pricing`);
         if (data.timesheet_price) pricing.value.timesheet_price = Number(data.timesheet_price);
         if (data.mandays_price) pricing.value.mandays_price = Number(data.mandays_price);
-        if (data.admin_fee) pricing.value.admin_fee = Number(data.admin_fee); // <--- Update fee dari DB
+        
+        // Map fees
+        if (data.fee_qris) pricing.value.fee_qris = Number(data.fee_qris);
+        if (data.fee_va) pricing.value.fee_va = Number(data.fee_va);
+        if (data.fee_retail) pricing.value.fee_retail = Number(data.fee_retail);
     } catch (e) {
         console.error("Gagal load pricing, pakai default.", e);
     }
@@ -154,14 +163,15 @@ export function useTimesheet() {
 
       isPaymentLoading.value = true;
       try {
-          // Kirim data lengkap ke backend
+          // Kirim data lengkap ke backend + Payment Category
           const { data } = await axios.post(`${API_URL}/api/payment/create`, {
               type: pendingExportType.value,
               employee: employee.value,
               tasks: regularTasks.value,
               overtimeTasks: overtimeTasks.value,
               email: emailRecipient.value,
-              user_id: user.value?.id 
+              user_id: user.value?.id,
+              paymentCategory: selectedPaymentCategory.value // <--- PENTING: Kirim kategori bayar
           });
 
           if (data.invoiceUrl) {
@@ -230,6 +240,7 @@ export function useTimesheet() {
     
     // Payment State
     isPaymentLoading, isEmailModalOpen, emailRecipient, pendingExportType,
+    selectedPaymentCategory, // Export ini agar bisa dipakai di Modal
     
     // Actions
     openPaymentModal, processPayment, fetchPricing,
