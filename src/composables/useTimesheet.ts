@@ -1,6 +1,6 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
-import { useAuth } from './useAuth'; // Import useAuth untuk ambil ID User
+import { useAuth } from './useAuth'; 
 
 // --- GLOBAL STATE (SINGLETON) ---
 const STORAGE_KEY = 'timesheet_data_v1';
@@ -22,10 +22,11 @@ const isEmailModalOpen = ref(false);
 const emailRecipient = ref('');
 const pendingExportType = ref<'timesheet' | 'mandays'>('timesheet');
 
-// Pricing State (Default fallback)
+// Pricing State (FIX: Tambahkan admin_fee disini agar TypeScript kenal)
 const pricing = ref({
     timesheet_price: 20000,
-    mandays_price: 25000
+    mandays_price: 25000,
+    admin_fee: 4500 // <--- INI WAJIB ADA
 });
 
 // Preview State
@@ -50,7 +51,6 @@ const overtimeTasks = ref<any[]>([]);
 
 export function useTimesheet() {
   
-  // Auto-sync reportName with name
   watch(() => employee.value.name, (newVal) => {
     if (newVal) employee.value.reportName = newVal;
   });
@@ -85,6 +85,7 @@ export function useTimesheet() {
         const { data } = await axios.get(`${API_URL}/api/pricing`);
         if (data.timesheet_price) pricing.value.timesheet_price = Number(data.timesheet_price);
         if (data.mandays_price) pricing.value.mandays_price = Number(data.mandays_price);
+        if (data.admin_fee) pricing.value.admin_fee = Number(data.admin_fee); // <--- Update fee dari DB
     } catch (e) {
         console.error("Gagal load pricing, pakai default.", e);
     }
@@ -160,17 +161,16 @@ export function useTimesheet() {
               tasks: regularTasks.value,
               overtimeTasks: overtimeTasks.value,
               email: emailRecipient.value,
-              user_id: user.value?.id // Wajib dikirim agar history muncul di akun ini
+              user_id: user.value?.id 
           });
 
           if (data.invoiceUrl) {
-              // Redirect ke Xendit Payment Page
               window.location.href = data.invoiceUrl;
           }
       } catch (err) {
           alert("Gagal membuat pembayaran. Cek koneksi backend.");
           console.error(err);
-          isPaymentLoading.value = false; // Stop loading jika gagal
+          isPaymentLoading.value = false; 
       }
   };
 
@@ -213,7 +213,7 @@ export function useTimesheet() {
   onMounted(() => { 
       loadData(); 
       fetchAssignees(); 
-      fetchPricing(); // Load harga dari DB
+      fetchPricing(); 
       window.addEventListener('resize', fitScreen); 
       setTimeout(() => isAppLoading.value = false, 1000); 
   });

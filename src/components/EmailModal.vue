@@ -8,7 +8,7 @@ const {
   pendingExportType, 
   processPayment, 
   isPaymentLoading,
-  pricing,      // State harga dari config
+  pricing,      // State harga dari config (termasuk admin_fee)
   fetchPricing  // Function update harga
 } = useTimesheet();
 
@@ -19,14 +19,20 @@ watch(isEmailModalOpen, (isOpen) => {
     }
 });
 
-// 2. Tentukan harga berdasarkan tipe dokumen (Timesheet vs Mandays)
-const price = computed(() => {
+// 2. Hitung Harga Dasar (Dokumen)
+const basePrice = computed(() => {
     return pendingExportType.value === 'mandays' 
         ? pricing.value.mandays_price 
         : pricing.value.timesheet_price;
 });
 
-// 3. Format Rupiah
+// 3. Ambil Admin Fee
+const adminFee = computed(() => pricing.value.admin_fee || 0);
+
+// 4. Hitung Total Tagihan
+const totalPrice = computed(() => basePrice.value + adminFee.value);
+
+// Format Rupiah
 const formatRupiah = (val: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val);
 };
@@ -65,13 +71,20 @@ const closeModal = () => {
                   <span class="text-xs font-bold uppercase text-slate-500">Rincian</span>
                   <span class="text-xs font-bold uppercase text-slate-500">Biaya</span>
               </div>
-              <div class="flex items-center justify-between text-sm font-medium text-slate-800 dark:text-white">
-                  <span>Jasa Generate PDF</span>
-                  <span>{{ formatRupiah(price) }}</span>
+              
+              <div class="flex items-center justify-between mb-1 text-sm font-medium text-slate-600 dark:text-slate-300">
+                  <span>Harga Dokumen</span>
+                  <span>{{ formatRupiah(basePrice) }}</span>
               </div>
+
+              <div class="flex items-center justify-between text-sm font-medium text-slate-600 dark:text-slate-300">
+                  <span>Biaya Layanan</span>
+                  <span>{{ formatRupiah(adminFee) }}</span>
+              </div>
+
               <div class="flex items-center justify-between pt-3 mt-3 border-t border-slate-200 dark:border-slate-700">
                   <span class="text-sm font-bold text-slate-800 dark:text-white">Total Tagihan</span>
-                  <span class="text-lg font-bold text-blue-600 dark:text-blue-400">{{ formatRupiah(price) }}</span>
+                  <span class="text-lg font-bold text-blue-600 dark:text-blue-400">{{ formatRupiah(totalPrice) }}</span>
               </div>
           </div>
 
