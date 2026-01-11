@@ -13,10 +13,10 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
-      path: '/auth', // Ganti /login jadi /auth agar sesuai file AuthView
+      path: '/auth',
       name: 'auth',
       component: AuthView,
-      meta: { guestOnly: true } // Hanya untuk yang belum login
+      meta: { guestOnly: true }
     },
     {
       path: '/payment-success',
@@ -24,20 +24,25 @@ const router = createRouter({
       component: PaymentSuccess,
       meta: { requiresAuth: true }
     },
-    // Redirect unknown routes
+    // Redirect unknown routes ke home
     { path: '/:pathMatch(.*)*', redirect: '/' }
   ]
 })
 
 // Navigation Guard
-router.beforeEach((to, from, next) => {
+// PERBAIKAN: Ubah 'from' menjadi '_from' agar TypeScript tidak komplain unused variable
+router.beforeEach((to, _from, next) => {
+  // Cek token di localStorage (sesuai key di useAuth.ts)
   const isAuthenticated = !!localStorage.getItem('timesheet_auth_token')
 
   if (to.meta.requiresAuth && !isAuthenticated) {
+    // Jika butuh login tapi belum login -> lempar ke Auth
     next('/auth')
   } else if (to.meta.guestOnly && isAuthenticated) {
+    // Jika halaman khusus tamu (Login) tapi sudah login -> lempar ke Dashboard
     next('/')
   } else {
+    // Lanjut
     next()
   }
 })
