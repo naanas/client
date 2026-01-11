@@ -8,7 +8,9 @@ const {
   syncData, fetchAssignees,
   enhanceDescription, enhancingId, isWeekend, autoFillLink,
   addRegularRow, removeRegularRow, addOvertimeRow, removeOvertimeRow,
-  downloadExcel // <--- Pastikan ini diambil dari composable
+  downloadExcel,     // Fitur Excel
+  payAndExportPdf,   // Fitur Xendit
+  isPaymentLoading   // Loading State
 } = useTimesheet();
 
 const inputClass = "w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 dark:focus:bg-slate-600 dark:placeholder-slate-500";
@@ -22,8 +24,8 @@ onMounted(() => {
 <template>
   <div class="pb-20 space-y-8 animate-fade-in">
     
-    <div class="flex items-center justify-between p-4 border border-blue-100 bg-blue-50 dark:bg-blue-900/20 rounded-xl dark:border-blue-800">
-        <div class="flex items-center gap-3">
+    <div class="flex flex-col items-center justify-between gap-4 p-4 border border-blue-100 bg-blue-50 dark:bg-blue-900/20 rounded-xl dark:border-blue-800 md:flex-row">
+        <div class="flex items-center w-full gap-3 md:w-auto">
             <div class="p-2 text-blue-600 bg-blue-100 rounded-lg dark:bg-blue-800 dark:text-blue-200">📄</div>
             <div>
                 <h3 class="text-xs font-bold text-blue-700 dark:text-blue-300">Mandays Report</h3>
@@ -31,13 +33,26 @@ onMounted(() => {
             </div>
         </div>
 
-        <button 
-            @click="downloadExcel('mandays')" 
-            class="flex items-center gap-2 px-3 py-2 text-xs font-bold text-white transition bg-green-600 rounded-lg shadow hover:bg-green-700"
-            title="Download Format Excel (.xlsx)"
-        >
-            <span>📊</span> Export Excel
-        </button>
+        <div class="flex items-center w-full gap-2 md:w-auto">
+            <button 
+                @click="downloadExcel('mandays')" 
+                class="flex items-center justify-center flex-1 gap-2 px-3 py-2 text-xs font-bold text-white transition bg-green-600 rounded-lg shadow md:flex-none hover:bg-green-700"
+                title="Download Format Excel (.xlsx)"
+            >
+                <span>📊</span> Excel
+            </button>
+            
+            <button 
+                @click="payAndExportPdf('mandays')"
+                :disabled="isPaymentLoading"
+                class="flex items-center justify-center flex-1 gap-2 px-3 py-2 text-xs font-bold text-white transition bg-purple-600 rounded-lg shadow md:flex-none hover:bg-purple-700 disabled:opacity-50"
+                title="Bayar & Kirim PDF ke Email"
+            >
+                <span v-if="isPaymentLoading" class="animate-spin">⏳</span>
+                <span v-else>💳</span>
+                PDF (Email)
+            </button>
+        </div>
     </div>
 
     <div class="space-y-4">

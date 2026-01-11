@@ -8,7 +8,9 @@ const {
   assigneeList, isSyncing, isAssigneeLoading,
   syncData, fetchAssignees,
   isWeekend, addRegularRow, removeRegularRow, addOvertimeRow, removeOvertimeRow,
-  downloadExcel // <--- Pastikan ini diambil
+  downloadExcel,     // Fitur Excel
+  payAndExportPdf,   // Fitur Xendit
+  isPaymentLoading   // Loading State Xendit
 } = useTimesheet();
 
 const inputClass = "w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all placeholder:text-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 dark:focus:bg-slate-600 dark:placeholder-slate-500";
@@ -59,8 +61,8 @@ const updateDescription = (task: any) => {
 <template>
   <div class="pb-20 space-y-8 animate-fade-in">
     
-    <div class="flex items-center justify-between p-4 border border-green-100 bg-green-50 dark:bg-green-900/20 rounded-xl dark:border-green-800">
-        <div class="flex items-center gap-3">
+    <div class="flex flex-col items-center justify-between gap-4 p-4 border border-green-100 bg-green-50 dark:bg-green-900/20 rounded-xl dark:border-green-800 md:flex-row">
+        <div class="flex items-center w-full gap-3 md:w-auto">
             <div class="p-2 text-green-600 bg-green-100 rounded-lg dark:bg-green-800 dark:text-green-200">📅</div>
             <div>
                 <h3 class="text-xs font-bold text-green-700 dark:text-green-300">Timesheet Data</h3>
@@ -68,13 +70,26 @@ const updateDescription = (task: any) => {
             </div>
         </div>
 
-        <button 
-            @click="downloadExcel('timesheet')" 
-            class="flex items-center gap-2 px-3 py-2 text-xs font-bold text-white transition bg-green-600 rounded-lg shadow hover:bg-green-700"
-            title="Download Format Excel (.xlsx)"
-        >
-            <span>📊</span> Export Excel
-        </button>
+        <div class="flex items-center w-full gap-2 md:w-auto">
+            <button 
+                @click="downloadExcel('timesheet')" 
+                class="flex items-center justify-center flex-1 gap-2 px-3 py-2 text-xs font-bold text-white transition bg-green-600 rounded-lg shadow md:flex-none hover:bg-green-700"
+                title="Download Format Excel (.xlsx)"
+            >
+                <span>📊</span> Excel
+            </button>
+
+            <button 
+                @click="payAndExportPdf('timesheet')"
+                :disabled="isPaymentLoading"
+                class="flex items-center justify-center flex-1 gap-2 px-3 py-2 text-xs font-bold text-white transition bg-purple-600 rounded-lg shadow md:flex-none hover:bg-purple-700 disabled:opacity-50"
+                title="Bayar & Kirim PDF ke Email"
+            >
+                <span v-if="isPaymentLoading" class="animate-spin">⏳</span>
+                <span v-else>💳</span>
+                PDF (Email)
+            </button>
+        </div>
     </div>
 
     <div class="space-y-2">

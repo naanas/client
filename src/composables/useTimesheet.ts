@@ -1,7 +1,6 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 
-// --- GLOBAL STATE (SINGLETON) ---
 const STORAGE_KEY = 'timesheet_data_v1';
 const THEME_KEY = 'timesheet_theme';
 const JIRA_BASE_URL = 'https://pegadaian.atlassian.net/browse/';
@@ -12,7 +11,8 @@ const isDarkMode = ref(false);
 const isLoading = ref(false);
 const isSyncing = ref(false);
 const isRefreshing = ref(false);
-const isAssigneeLoading = ref(false); 
+const isAssigneeLoading = ref(false);
+const isPaymentLoading = ref(false); // State Loading Payment
 
 const htmlContent = ref('');
 const scale = ref(0.6);
@@ -55,15 +55,8 @@ export function useTimesheet() {
         const { data } = await axios.get(`${API_URL}/api/assignees`); 
         assigneeList.value = data; 
     } 
-    catch (e) { 
-        console.error("Gagal load assignees", e); 
-    } 
-    finally { 
-        setTimeout(() => {
-            isRefreshing.value = false;
-            isAssigneeLoading.value = false;
-        }, 500); 
-    }
+    catch (e) { console.error("Gagal load assignees", e); } 
+    finally { setTimeout(() => { isRefreshing.value = false; isAssigneeLoading.value = false; }, 500); }
   };
 
   const enhanceDescription = async (index: number, type: 'regular' | 'overtime') => {
@@ -81,52 +74,60 @@ export function useTimesheet() {
     htmlContent.value = ''; 
     try {
       const response = await axios.post(`${API_URL}/api/preview-html`, {
-        type, 
-        employee: employee.value, 
-        tasks: regularTasks.value, 
-        overtimeTasks: overtimeTasks.value
+        type, employee: employee.value, tasks: regularTasks.value, overtimeTasks: overtimeTasks.value
       });
       htmlContent.value = response.data;
-    } catch (error) {
-        alert("Gagal memuat preview.");
-    } finally { isLoading.value = false; }
+    } catch (error) { alert("Gagal memuat preview."); } 
+    finally { isLoading.value = false; }
   };
 
-  // --- UPDATED: DOWNLOAD EXCEL (Support 2 Tipe) ---
-  // Parameter 'type' defaultnya 'mandays' agar tidak error di kode lama
   const downloadExcel = async (type: 'mandays' | 'timesheet' = 'mandays') => {
     const label = type === 'timesheet' ? 'Timesheet' : 'Mandays';
-    
     if (!confirm(`Download versi Excel ${label} (.xlsx)?`)) return;
     
-    // Tentukan Endpoint berdasarkan tipe
-    const endpoint = type === 'timesheet' 
-        ? `${API_URL}/api/generate-timesheet`
-        : `${API_URL}/api/generate-mandays`;
+    const endpoint = type === 'timesheet' ? `${API_URL}/api/generate-timesheet` : `${API_URL}/api/generate-mandays`;
 
     try {
         const response = await axios.post(endpoint, {
-            employee: employee.value,
-            tasks: regularTasks.value,
-            overtimeTasks: overtimeTasks.value
-        }, { 
-            responseType: 'blob' 
-        });
+            employee: employee.value, tasks: regularTasks.value, overtimeTasks: overtimeTasks.value
+        }, { responseType: 'blob' });
 
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
-        const filename = `${label}_${employee.value.name || 'Export'}.xlsx`;
-        link.setAttribute('download', filename);
+        link.setAttribute('download', `${label}_${employee.value.name || 'Export'}.xlsx`);
         document.body.appendChild(link);
         link.click();
-        
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
-    } catch (error) {
-        console.error(error);
-        alert(`Gagal download Excel ${label}.`);
-    }
+    } catch (error) { alert(`Gagal download Excel ${label}.`); }
+  };
+
+  // --- LOGIC XENDIT PAYMENT ---
+  const payAndExportPdf = async (type: 'timesheet' | 'mandays') => {
+      const email = prompt("Masukkan email untuk menerima file PDF:");
+      if (!email) return;
+
+      isPaymentLoading.value = true;
+      try {
+          const { data } = await axios.post(`${API_URL}/api/payment/create`, {
+              type,
+              employee: employee.value,
+              tasks: regularTasks.value,
+              overtimeTasks: overtimeTasks.value,
+              email: email
+          });
+
+          if (data.invoiceUrl) {
+              // Redirect User ke Halaman Bayar Xendit
+              window.location.href = data.invoiceUrl;
+          }
+      } catch (err) {
+          alert("Gagal membuat pembayaran. Cek koneksi backend.");
+          console.error(err);
+      } finally {
+          isPaymentLoading.value = false;
+      }
   };
 
   const autoFillLink = (task: any) => {
@@ -144,16 +145,8 @@ export function useTimesheet() {
       localStorage.setItem(THEME_KEY, isDarkMode.value ? 'dark' : 'light');
   };
 
-  const fitScreen = () => { 
-    if (previewContainer.value) {
-       scale.value = Math.max(0.3, Math.min((previewContainer.value.clientWidth - 60) / 1123, 1.5));
-    }
-  };
-
-  const printFromIframe = () => {
-    const iframe = document.getElementById('preview-frame') as HTMLIFrameElement;
-    if (iframe?.contentWindow) { iframe.contentWindow.focus(); iframe.contentWindow.print(); }
-  };
+  const fitScreen = () => { if (previewContainer.value) scale.value = Math.max(0.3, Math.min((previewContainer.value.clientWidth - 60) / 1123, 1.5)); };
+  const printFromIframe = () => { const iframe = document.getElementById('preview-frame') as HTMLIFrameElement; if (iframe?.contentWindow) { iframe.contentWindow.focus(); iframe.contentWindow.print(); } };
 
   const saveData = () => localStorage.setItem(STORAGE_KEY, JSON.stringify({ employee: employee.value, regularTasks: regularTasks.value, overtimeTasks: overtimeTasks.value }));
   const loadData = () => {
@@ -169,9 +162,11 @@ export function useTimesheet() {
 
   return {
     employee, regularTasks, overtimeTasks, assigneeList, 
-    isDarkMode, isLoading, isSyncing, isRefreshing, isAssigneeLoading, 
+    isDarkMode, isLoading, isSyncing, isRefreshing, isAssigneeLoading, isPaymentLoading,
     isAppLoading, htmlContent, scale, previewContainer, enhancingId,
-    syncData, fetchAssignees, enhanceDescription, loadPreview, downloadExcel,
+    syncData, fetchAssignees, enhanceDescription, loadPreview, 
+    downloadExcel,   
+    payAndExportPdf, // Fungsi Baru
     autoFillLink, isWeekend, toggleDarkMode, fitScreen, printFromIframe,
     zoomIn: () => scale.value < 2 ? scale.value += 0.1 : null,
     zoomOut: () => scale.value > 0.3 ? scale.value -= 0.1 : null,
