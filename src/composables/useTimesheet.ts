@@ -12,7 +12,7 @@ const isDarkMode = ref(false);
 const isLoading = ref(false);
 const isSyncing = ref(false);
 const isRefreshing = ref(false);
-const isAssigneeLoading = ref(false); // State Loading Assignee
+const isAssigneeLoading = ref(false); 
 
 const htmlContent = ref('');
 const scale = ref(0.6);
@@ -92,34 +92,40 @@ export function useTimesheet() {
     } finally { isLoading.value = false; }
   };
 
-  // --- FITUR DOWNLOAD EXCEL ---
-  const downloadExcel = async () => {
-    if (!confirm("Download versi Excel (.xlsx)?")) return;
+  // --- UPDATED: DOWNLOAD EXCEL (Support 2 Tipe) ---
+  // Parameter 'type' defaultnya 'mandays' agar tidak error di kode lama
+  const downloadExcel = async (type: 'mandays' | 'timesheet' = 'mandays') => {
+    const label = type === 'timesheet' ? 'Timesheet' : 'Mandays';
     
+    if (!confirm(`Download versi Excel ${label} (.xlsx)?`)) return;
+    
+    // Tentukan Endpoint berdasarkan tipe
+    const endpoint = type === 'timesheet' 
+        ? `${API_URL}/api/generate-timesheet`
+        : `${API_URL}/api/generate-mandays`;
+
     try {
-        const response = await axios.post(`${API_URL}/api/generate-timesheet`, {
+        const response = await axios.post(endpoint, {
             employee: employee.value,
             tasks: regularTasks.value,
             overtimeTasks: overtimeTasks.value
         }, { 
-            responseType: 'blob' // Wajib blob agar file terbaca
+            responseType: 'blob' 
         });
 
-        // Buat link download virtual
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
-        const filename = `Timesheet_${employee.value.name || 'Export'}.xlsx`;
+        const filename = `${label}_${employee.value.name || 'Export'}.xlsx`;
         link.setAttribute('download', filename);
         document.body.appendChild(link);
         link.click();
         
-        // Cleanup
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
     } catch (error) {
         console.error(error);
-        alert("Gagal download Excel. Pastikan backend server support.");
+        alert(`Gagal download Excel ${label}.`);
     }
   };
 
@@ -165,7 +171,7 @@ export function useTimesheet() {
     employee, regularTasks, overtimeTasks, assigneeList, 
     isDarkMode, isLoading, isSyncing, isRefreshing, isAssigneeLoading, 
     isAppLoading, htmlContent, scale, previewContainer, enhancingId,
-    syncData, fetchAssignees, enhanceDescription, loadPreview, downloadExcel, // <-- Export downloadExcel
+    syncData, fetchAssignees, enhanceDescription, loadPreview, downloadExcel,
     autoFillLink, isWeekend, toggleDarkMode, fitScreen, printFromIframe,
     zoomIn: () => scale.value < 2 ? scale.value += 0.1 : null,
     zoomOut: () => scale.value > 0.3 ? scale.value -= 0.1 : null,

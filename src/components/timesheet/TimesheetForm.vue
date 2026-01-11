@@ -6,11 +6,12 @@ import { useTimesheet } from '../../composables/useTimesheet';
 const {
   employee, regularTasks, overtimeTasks,
   assigneeList, isSyncing, isAssigneeLoading,
-  syncData, fetchAssignees, downloadExcel, // <--- Tambahkan downloadExcel
+  syncData, fetchAssignees,
   isWeekend, addRegularRow, removeRegularRow, addOvertimeRow, removeOvertimeRow,
+  downloadExcel // <--- Pastikan ini diambil
 } = useTimesheet();
 
-const inputClass = "w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all placeholder:text-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 dark:focus:bg-slate-600 dark:placeholder-slate-500 disabled:opacity-60 disabled:cursor-not-allowed";
+const inputClass = "w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all placeholder:text-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 dark:focus:bg-slate-600 dark:placeholder-slate-500";
 const labelClass = "text-[10px] text-slate-400 font-bold ml-1 dark:text-slate-500 uppercase";
 
 // --- LOGIC PERIODE ---
@@ -42,6 +43,7 @@ const updatePeriodDates = () => {
 watch([selectedMonth, selectedYear], updatePeriodDates);
 onMounted(() => {
     updatePeriodDates();
+    fetchAssignees(); 
 });
 
 // Helper Status
@@ -65,9 +67,13 @@ const updateDescription = (task: any) => {
                 <p class="text-[10px] text-green-600 dark:text-green-400">Pastikan Status Harian (WH/AL/S) sesuai.</p>
             </div>
         </div>
-        
-        <button @click="downloadExcel" class="px-3 py-1.5 bg-white dark:bg-slate-800 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-700 rounded-lg text-[10px] font-bold hover:bg-green-50 dark:hover:bg-green-900/30 shadow-sm transition flex items-center gap-1" title="Download Format Excel (.xlsx)">
-            📊 .xlsx
+
+        <button 
+            @click="downloadExcel('timesheet')" 
+            class="flex items-center gap-2 px-3 py-2 text-xs font-bold text-white transition bg-green-600 rounded-lg shadow hover:bg-green-700"
+            title="Download Format Excel (.xlsx)"
+        >
+            <span>📊</span> Export Excel
         </button>
     </div>
 
@@ -106,26 +112,20 @@ const updateDescription = (task: any) => {
                             Sync DB
                         </button>
                         <span class="text-slate-300">|</span>
-                        <button @click="fetchAssignees" :disabled="isAssigneeLoading" class="text-[9px] text-blue-500 hover:underline flex items-center gap-1 disabled:opacity-50">
-                            <svg v-if="isAssigneeLoading" class="w-3 h-3 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            {{ isAssigneeLoading ? 'Loading...' : 'Refresh List' }}
+                        <button @click="fetchAssignees" :disabled="isAssigneeLoading" class="text-[9px] text-blue-500 hover:underline flex items-center gap-1">
+                            <svg v-if="isAssigneeLoading" class="w-3 h-3 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            {{ isAssigneeLoading ? 'Loading...' : 'Refresh' }}
                         </button>
                     </div>
                 </div>
                 
                 <div class="relative">
-                    <select v-model="employee.name" :disabled="isAssigneeLoading" :class="[inputClass, isAssigneeLoading ? 'bg-slate-50 text-slate-400 cursor-wait' : '']">
+                    <select v-model="employee.name" :disabled="isAssigneeLoading" :class="[inputClass, isAssigneeLoading ? 'bg-slate-100 text-slate-400' : '']">
                         <option value="" disabled>-- Pilih Nama --</option>
                         <option v-for="name in assigneeList" :key="name" :value="name">{{ name }}</option>
                     </select>
                     <div v-if="isAssigneeLoading" class="absolute inset-y-0 flex items-center pointer-events-none right-8">
-                        <svg class="w-4 h-4 text-green-500 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
+                        <svg class="w-4 h-4 text-green-500 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                     </div>
                 </div>
             </div>
