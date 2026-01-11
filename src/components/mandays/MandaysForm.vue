@@ -8,9 +8,7 @@ const {
   syncData, fetchAssignees,
   enhanceDescription, enhancingId, isWeekend, autoFillLink,
   addRegularRow, removeRegularRow, addOvertimeRow, removeOvertimeRow,
-  downloadExcel,     // Fitur Excel
-  openPaymentModal,  // GANTI: Panggil fungsi buka modal
-  isPaymentLoading   // Loading State
+  downloadExcel // Hapus payment karena sudah pindah
 } = useTimesheet();
 
 const inputClass = "w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 dark:focus:bg-slate-600 dark:placeholder-slate-500";
@@ -40,16 +38,6 @@ onMounted(() => {
                 title="Download Format Excel (.xlsx)"
             >
                 <span>📊</span> Excel
-            </button>
-            
-            <button 
-                @click="openPaymentModal('mandays')"
-                :disabled="isPaymentLoading"
-                class="flex items-center justify-center flex-1 gap-2 px-3 py-2 text-xs font-bold text-white transition bg-purple-600 rounded-lg shadow md:flex-none hover:bg-purple-700 disabled:opacity-50"
-                title="Bayar & Kirim PDF ke Email"
-            >
-                <span>💳</span>
-                PDF (Email)
             </button>
         </div>
     </div>
@@ -112,7 +100,6 @@ onMounted(() => {
                 </div>
                 <div class="relative">
                     <textarea v-model="task.description" rows="2" placeholder="Deskripsi pekerjaan..." :class="[inputClass, 'pr-8']"></textarea>
-                    
                     <button @click="enhanceDescription(index, 'regular')" class="absolute p-1 transition-all rounded-md top-2 right-2 hover:bg-purple-100" title="Perbaiki Bahasa (AI)">
                         <svg v-if="enhancingId === `regular-${index}`" class="w-4 h-4 text-purple-600 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

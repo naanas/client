@@ -8,9 +8,7 @@ const {
   assigneeList, isSyncing, isAssigneeLoading,
   syncData, fetchAssignees,
   isWeekend, addRegularRow, removeRegularRow, addOvertimeRow, removeOvertimeRow,
-  downloadExcel,     // Fitur Excel
-  openPaymentModal,  // GANTI: Panggil fungsi buka modal
-  isPaymentLoading   // Loading State Xendit
+  downloadExcel // Hapus openPaymentModal & isPaymentLoading karena sudah pindah ke Dashboard
 } = useTimesheet();
 
 const inputClass = "w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all placeholder:text-slate-400 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 dark:focus:bg-slate-600 dark:placeholder-slate-500";
@@ -78,16 +76,6 @@ const updateDescription = (task: any) => {
             >
                 <span>📊</span> Excel
             </button>
-
-            <button 
-                @click="openPaymentModal('timesheet')"
-                :disabled="isPaymentLoading"
-                class="flex items-center justify-center flex-1 gap-2 px-3 py-2 text-xs font-bold text-white transition bg-purple-600 rounded-lg shadow md:flex-none hover:bg-purple-700 disabled:opacity-50"
-                title="Bayar & Kirim PDF ke Email"
-            >
-                <span>💳</span>
-                PDF (Email)
-            </button>
         </div>
     </div>
 
@@ -115,7 +103,6 @@ const updateDescription = (task: any) => {
     <div class="space-y-4">
         <h3 class="pb-1 text-xs font-bold tracking-wider uppercase border-b text-slate-400 dark:text-slate-500 dark:border-slate-700">Data Karyawan</h3>
         <div class="p-4 space-y-3 bg-white border rounded-lg dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-            
             <div class="space-y-1">
                 <div class="flex items-center justify-between">
                     <label :class="labelClass">Nama Assignee</label>
@@ -132,7 +119,6 @@ const updateDescription = (task: any) => {
                         </button>
                     </div>
                 </div>
-                
                 <div class="relative">
                     <select v-model="employee.name" :disabled="isAssigneeLoading" :class="[inputClass, isAssigneeLoading ? 'bg-slate-100 text-slate-400' : '']">
                         <option value="" disabled>-- Pilih Nama --</option>
@@ -147,10 +133,8 @@ const updateDescription = (task: any) => {
             <div class="grid grid-cols-2 gap-3">
                 <div><label :class="labelClass">NIK / Employee No</label><input v-model="employee.no" type="text" :class="inputClass" /></div>
                 <div><label :class="labelClass">Squad</label><input v-model="employee.squad" type="text" :class="inputClass" /></div>
-                
                 <div><label :class="labelClass">Work Unit</label><input v-model="employee.workUnit" type="text" :class="inputClass" /></div>
                 <div><label :class="labelClass">Client Site</label><input v-model="employee.clientSite" type="text" :class="inputClass" /></div>
-                
                 <div><label :class="labelClass">Dept. Head</label><input v-model="employee.deptHead" type="text" :class="inputClass" /></div>
                 <div><label :class="labelClass">Supervisor</label><input v-model="employee.supervisor" type="text" :class="inputClass" /></div>
             </div>
@@ -206,7 +190,6 @@ const updateDescription = (task: any) => {
             </div>
         </div>
     </div>
-
   </div>
 </template>
 

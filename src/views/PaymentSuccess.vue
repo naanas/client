@@ -9,8 +9,9 @@ const seconds = ref(5);
 const externalId = route.query.external_id || '-';
 let timer: any = null;
 
-const goHome = () => {
-  router.push('/');
+// GANTI LOGIC REDIRECT KE HISTORY
+const goHistory = () => {
+  router.push('/?tab=history'); 
 };
 
 onMounted(() => {
@@ -18,7 +19,7 @@ onMounted(() => {
     seconds.value--;
     if (seconds.value <= 0) {
       clearInterval(timer);
-      goHome();
+      goHistory(); // Panggil fungsi baru
     }
   }, 1000);
 });
@@ -46,18 +47,18 @@ onUnmounted(() => {
       <div class="px-4 py-3 mb-6 text-sm text-left text-blue-700 border border-blue-100 rounded-lg bg-blue-50 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800">
         📧 <b>PENTING:</b><br>
         Sistem sedang memproses PDF Anda.<br>
-        Silakan cek <b>Inbox/Spam Email</b> Anda dalam 1-2 menit ke depan.
+        Silakan cek <b>Riwayat Transaksi</b> atau Email Anda.
       </div>
 
       <p class="mb-2 text-xs text-slate-400">
-        Kembali ke dashboard dalam <span class="font-bold text-slate-600 dark:text-slate-300">{{ seconds }}</span> detik...
+        Membuka riwayat transaksi dalam <span class="font-bold text-slate-600 dark:text-slate-300">{{ seconds }}</span> detik...
       </p>
 
       <button 
-        @click="goHome" 
+        @click="goHistory" 
         class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-lg font-bold transition text-sm"
       >
-        Kembali Sekarang
+        Lihat Riwayat Sekarang
       </button>
 
     </div>

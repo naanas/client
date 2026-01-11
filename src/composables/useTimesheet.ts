@@ -1,7 +1,8 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
+import { useAuth } from './useAuth'; // PENTING: Import useAuth
 
-// --- GLOBAL STATE (SINGLETON) ---
+// --- GLOBAL STATE ---
 const STORAGE_KEY = 'timesheet_data_v1';
 const THEME_KEY = 'timesheet_theme';
 const JIRA_BASE_URL = 'https://pegadaian.atlassian.net/browse/';
@@ -15,7 +16,7 @@ const isRefreshing = ref(false);
 const isAssigneeLoading = ref(false);
 const isPaymentLoading = ref(false);
 
-// --- MODAL STATE (NEW) ---
+// --- MODAL STATE ---
 const isEmailModalOpen = ref(false);
 const emailRecipient = ref('');
 const pendingExportType = ref<'timesheet' | 'mandays'>('timesheet');
@@ -109,16 +110,16 @@ export function useTimesheet() {
     } catch (error) { alert(`Gagal download Excel ${label}.`); }
   };
 
-  // --- PAYMENT LOGIC (UPDATED) ---
-  
-  // 1. Trigger Modal (Dipanggil tombol)
+  // --- PAYMENT LOGIC ---
   const openPaymentModal = (type: 'timesheet' | 'mandays') => {
       pendingExportType.value = type;
       isEmailModalOpen.value = true;
   };
 
-  // 2. Eksekusi Pembayaran (Dipanggil dari Modal)
+  // FIX: typo 'onst' -> 'const'
   const processPayment = async () => {
+      const { user } = useAuth(); // Ambil User Login
+
       if (!emailRecipient.value) {
           alert("Email wajib diisi!");
           return;
@@ -131,7 +132,8 @@ export function useTimesheet() {
               employee: employee.value,
               tasks: regularTasks.value,
               overtimeTasks: overtimeTasks.value,
-              email: emailRecipient.value
+              email: emailRecipient.value,
+              user_id: user.value?.id // KIRIM USER ID AGAR MUNCUL DI HISTORY
           });
 
           if (data.invoiceUrl) {
@@ -140,9 +142,8 @@ export function useTimesheet() {
       } catch (err) {
           alert("Gagal membuat pembayaran. Cek koneksi backend.");
           console.error(err);
-          isPaymentLoading.value = false; // Matikan loading jika gagal
+          isPaymentLoading.value = false;
       }
-      // Note: Jika sukses redirect, loading tidak perlu dimatikan karena halaman akan pindah
   };
 
   const autoFillLink = (task: any) => {
