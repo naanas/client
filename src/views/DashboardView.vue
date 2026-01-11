@@ -8,23 +8,31 @@
     import MandaysForm from '../components/mandays/MandaysForm.vue';
     import TimesheetForm from '../components/timesheet/TimesheetForm.vue';
     import EmailModal from '../components/EmailModal.vue';
-    import HistoryList from '../components/HistoryList.vue'; // Component Baru
+    import HistoryList from '../components/HistoryList.vue'; 
+    import AdminSettings from '../components/AdminSettings.vue'; // IMPORT ADMIN SETTINGS
     
-    // Updated Tab Type
-    type Tab = 'home' | 'timesheet' | 'mandays' | 'history';
+    // Updated Tab Type (+ admin)
+    type Tab = 'home' | 'timesheet' | 'mandays' | 'history' | 'admin';
     const activeTab = ref<Tab>('home');
     
     const router = useRouter();
     const route = useRoute();
-    const { user, handleLogout } = useAuth();
+    
+    // Ambil userRole juga dari useAuth
+    const { user, userRole, handleLogout } = useAuth();
     
     const {
       isDarkMode, toggleDarkMode, isAppLoading,
-      htmlContent, scale, zoomIn, zoomOut, previewContainer,
+      htmlContent, scale, zoomIn, zoomOut, fitScreen, previewContainer,
       loadPreview, isLoading,
-      openPaymentModal, isPaymentLoading // Ambil fungsi modal
+      openPaymentModal, isPaymentLoading 
     } = useTimesheet();
     
+    // LOGIC ADMIN CHECK (VIA ROLE)
+    const isAdmin = computed(() => {
+        return user.value && userRole.value === 'admin';
+    });
+
     const logoutAndRedirect = async () => {
         await handleLogout();
         router.replace('/auth');
@@ -43,6 +51,7 @@
         switch(activeTab.value) {
             case 'home': return '🏠 Home Dashboard';
             case 'history': return '📜 Riwayat Transaksi';
+            case 'admin': return '⚙️ Pengaturan Admin';
             case 'timesheet': return '⏱️ Timesheet Preview';
             case 'mandays': return '📄 Mandays Preview';
             default: return '';
@@ -72,6 +81,7 @@
                         <div class="flex items-center gap-1.5 mt-0.5">
                             <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                             <span class="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate max-w-[120px]">{{ user?.email }}</span>
+                            <span v-if="isAdmin" class="text-[9px] bg-red-100 text-red-600 px-1 rounded font-bold ml-1">ADMIN</span>
                         </div>
                     </div>
                 </div>
@@ -80,11 +90,17 @@
                 </button>
             </div>
 
-            <div class="grid grid-cols-2 gap-2 bg-slate-100 dark:bg-slate-700 p-1.5 rounded-xl">
-                <button @click="activeTab='home'" :class="['py-2 text-[10px] font-bold rounded-lg transition-all', activeTab==='home'?'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm':'text-slate-400 hover:text-slate-600']">HOME</button>
-                <button @click="activeTab='history'" :class="['py-2 text-[10px] font-bold rounded-lg transition-all', activeTab==='history'?'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm':'text-slate-400 hover:text-slate-600']">HISTORY</button>
-                <button @click="activeTab='timesheet'" :class="['py-2 text-[10px] font-bold rounded-lg transition-all', activeTab==='timesheet'?'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm':'text-slate-400 hover:text-slate-600']">TIMESHEET</button>
-                <button @click="activeTab='mandays'" :class="['py-2 text-[10px] font-bold rounded-lg transition-all', activeTab==='mandays'?'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm':'text-slate-400 hover:text-slate-600']">MANDAYS</button>
+            <div class="flex flex-col gap-2 bg-slate-100 dark:bg-slate-700 p-1.5 rounded-xl">
+                <div class="grid grid-cols-2 gap-2">
+                    <button @click="activeTab='home'" :class="['py-2 text-[10px] font-bold rounded-lg transition-all', activeTab==='home'?'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm':'text-slate-400 hover:text-slate-600']">HOME</button>
+                    <button @click="activeTab='history'" :class="['py-2 text-[10px] font-bold rounded-lg transition-all', activeTab==='history'?'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm':'text-slate-400 hover:text-slate-600']">HISTORY</button>
+                    <button @click="activeTab='timesheet'" :class="['py-2 text-[10px] font-bold rounded-lg transition-all', activeTab==='timesheet'?'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm':'text-slate-400 hover:text-slate-600']">TIMESHEET</button>
+                    <button @click="activeTab='mandays'" :class="['py-2 text-[10px] font-bold rounded-lg transition-all', activeTab==='mandays'?'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm':'text-slate-400 hover:text-slate-600']">MANDAYS</button>
+                </div>
+
+                <button v-if="isAdmin" @click="activeTab='admin'" :class="['w-full py-2 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-2', activeTab==='admin'?'bg-red-500 text-white shadow-sm':'bg-white dark:bg-slate-600 text-red-500 hover:bg-red-50']">
+                    ⚙️ ADMIN SETTINGS
+                </button>
             </div>
             
             <div class="flex justify-end mt-4">
@@ -105,6 +121,7 @@
 
             <MandaysForm v-if="activeTab === 'mandays'" />
             <TimesheetForm v-if="activeTab === 'timesheet'" />
+            <div v-if="activeTab === 'admin' && isAdmin" class="mt-4"><AdminSettings /></div>
         </div>
 
         <div class="sticky bottom-0 z-30 p-4 bg-white border-t dark:bg-slate-800 border-slate-200 dark:border-slate-700 md:static">
@@ -117,7 +134,7 @@
                 <span v-else>Update Preview</span>
             </button>
             
-            <div v-if="activeTab === 'home' || activeTab === 'history'" class="text-center text-[10px] text-slate-400">PT Pegadaian © 2026</div>
+            <div v-if="activeTab === 'home' || activeTab === 'history' || activeTab === 'admin'" class="text-center text-[10px] text-slate-400">PT Pegadaian © 2026</div>
         </div>
     </aside>
 
@@ -132,6 +149,7 @@
                 <button @click="zoomOut" class="flex items-center justify-center w-6 h-6 font-bold bg-white rounded dark:bg-slate-600 text-slate-600 dark:text-slate-200">-</button>
                 <input type="range" min="0.3" max="1.5" step="0.1" v-model.number="scale" class="w-20 h-2 rounded-lg appearance-none cursor-pointer md:w-32 bg-slate-200">
                 <button @click="zoomIn" class="flex items-center justify-center w-6 h-6 font-bold bg-white rounded dark:bg-slate-600 text-slate-600 dark:text-slate-200">+</button>
+                <button @click="fitScreen" class="px-2 text-[10px] font-bold text-blue-600 bg-white rounded hover:bg-blue-50 ml-1">FIT</button>
             </div>
             
             <button 
@@ -172,11 +190,19 @@
                         <div class="mb-2 text-3xl">📜</div>
                         <div class="font-bold text-slate-700 dark:text-white">History</div>
                     </button>
+                    <button v-if="isAdmin" @click="activeTab='admin'" class="p-6 transition border border-red-100 shadow bg-red-50 dark:bg-slate-800 rounded-xl hover:shadow-lg">
+                        <div class="mb-2 text-3xl">⚙️</div>
+                        <div class="font-bold text-red-600 dark:text-red-400">Admin</div>
+                    </button>
                 </div>
             </div>
 
             <div v-if="activeTab === 'history'" class="w-full">
                 <HistoryList />
+            </div>
+
+            <div v-if="activeTab === 'admin' && isAdmin" class="w-full">
+                <AdminSettings />
             </div>
 
         </div>

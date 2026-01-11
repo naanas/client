@@ -1,13 +1,14 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
-import { useAuth } from './useAuth'; // PENTING: Import useAuth
+import { useAuth } from './useAuth'; // Import useAuth untuk ambil ID User
 
-// --- GLOBAL STATE ---
+// --- GLOBAL STATE (SINGLETON) ---
 const STORAGE_KEY = 'timesheet_data_v1';
 const THEME_KEY = 'timesheet_theme';
 const JIRA_BASE_URL = 'https://pegadaian.atlassian.net/browse/';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
+// UI State
 const isAppLoading = ref(true);
 const isDarkMode = ref(false);
 const isLoading = ref(false);
@@ -16,17 +17,25 @@ const isRefreshing = ref(false);
 const isAssigneeLoading = ref(false);
 const isPaymentLoading = ref(false);
 
-// --- MODAL STATE ---
+// Modal Payment State
 const isEmailModalOpen = ref(false);
 const emailRecipient = ref('');
 const pendingExportType = ref<'timesheet' | 'mandays'>('timesheet');
 
+// Pricing State (Default fallback)
+const pricing = ref({
+    timesheet_price: 20000,
+    mandays_price: 25000
+});
+
+// Preview State
 const htmlContent = ref('');
 const scale = ref(0.6);
 const previewContainer = ref<HTMLDivElement | null>(null);
 const enhancingId = ref<string | null>(null);
 const assigneeList = ref<string[]>([]);
 
+// Data Employee
 const employee = ref({
   name: '', reportName: '', no: 'POJ42050260',
   clientSite: 'Divisi Pengembangan Aplikasi TI - PT Pegadaian',
@@ -35,14 +44,18 @@ const employee = ref({
   squad: 'Squad IT PLATFORM', periodStart: '', periodEnd: '', month: ''
 });
 
+// Tasks Data
 const regularTasks = ref<any[]>([]);
 const overtimeTasks = ref<any[]>([]);
 
 export function useTimesheet() {
   
+  // Auto-sync reportName with name
   watch(() => employee.value.name, (newVal) => {
     if (newVal) employee.value.reportName = newVal;
   });
+
+  // --- API FUNCTIONS ---
 
   const syncData = async () => {
     if (isSyncing.value) return;
@@ -64,6 +77,17 @@ export function useTimesheet() {
     } 
     catch (e) { console.error("Gagal load assignees", e); } 
     finally { setTimeout(() => { isRefreshing.value = false; isAssigneeLoading.value = false; }, 500); }
+  };
+
+  // Ambil Harga dari Backend (Admin Config)
+  const fetchPricing = async () => {
+    try {
+        const { data } = await axios.get(`${API_URL}/api/pricing`);
+        if (data.timesheet_price) pricing.value.timesheet_price = Number(data.timesheet_price);
+        if (data.mandays_price) pricing.value.mandays_price = Number(data.mandays_price);
+    } catch (e) {
+        console.error("Gagal load pricing, pakai default.", e);
+    }
   };
 
   const enhanceDescription = async (index: number, type: 'regular' | 'overtime') => {
@@ -110,15 +134,17 @@ export function useTimesheet() {
     } catch (error) { alert(`Gagal download Excel ${label}.`); }
   };
 
-  // --- PAYMENT LOGIC ---
+  // --- PAYMENT LOGIC (XENDIT) ---
+  
+  // 1. Trigger Modal
   const openPaymentModal = (type: 'timesheet' | 'mandays') => {
       pendingExportType.value = type;
       isEmailModalOpen.value = true;
   };
 
-  // FIX: typo 'onst' -> 'const'
+  // 2. Process Transaction
   const processPayment = async () => {
-      const { user } = useAuth(); // Ambil User Login
+      const { user } = useAuth(); // Ambil user login
 
       if (!emailRecipient.value) {
           alert("Email wajib diisi!");
@@ -127,25 +153,28 @@ export function useTimesheet() {
 
       isPaymentLoading.value = true;
       try {
+          // Kirim data lengkap ke backend
           const { data } = await axios.post(`${API_URL}/api/payment/create`, {
               type: pendingExportType.value,
               employee: employee.value,
               tasks: regularTasks.value,
               overtimeTasks: overtimeTasks.value,
               email: emailRecipient.value,
-              user_id: user.value?.id // KIRIM USER ID AGAR MUNCUL DI HISTORY
+              user_id: user.value?.id // Wajib dikirim agar history muncul di akun ini
           });
 
           if (data.invoiceUrl) {
+              // Redirect ke Xendit Payment Page
               window.location.href = data.invoiceUrl;
           }
       } catch (err) {
           alert("Gagal membuat pembayaran. Cek koneksi backend.");
           console.error(err);
-          isPaymentLoading.value = false;
+          isPaymentLoading.value = false; // Stop loading jika gagal
       }
   };
 
+  // --- UTILS ---
   const autoFillLink = (task: any) => {
     if (task.ticketNumber && !task.ticketLink) {
         task.ticketNumber = task.ticketNumber.trim().toUpperCase();
@@ -164,27 +193,49 @@ export function useTimesheet() {
   const fitScreen = () => { if (previewContainer.value) scale.value = Math.max(0.3, Math.min((previewContainer.value.clientWidth - 60) / 1123, 1.5)); };
   const printFromIframe = () => { const iframe = document.getElementById('preview-frame') as HTMLIFrameElement; if (iframe?.contentWindow) { iframe.contentWindow.focus(); iframe.contentWindow.print(); } };
 
+  // --- PERSISTENCE ---
   const saveData = () => localStorage.setItem(STORAGE_KEY, JSON.stringify({ employee: employee.value, regularTasks: regularTasks.value, overtimeTasks: overtimeTasks.value }));
+  
   const loadData = () => {
     const savedTheme = localStorage.getItem(THEME_KEY);
     if(savedTheme === 'dark') { isDarkMode.value = true; document.documentElement.classList.add('dark'); }
+    
     const s = localStorage.getItem(STORAGE_KEY);
-    if (s) { const p = JSON.parse(s); if(p.employee) employee.value = p.employee; if(p.regularTasks) regularTasks.value=p.regularTasks; if(p.overtimeTasks) overtimeTasks.value=p.overtimeTasks; }
+    if (s) { 
+        const p = JSON.parse(s); 
+        if(p.employee) employee.value = p.employee; 
+        if(p.regularTasks) regularTasks.value=p.regularTasks; 
+        if(p.overtimeTasks) overtimeTasks.value=p.overtimeTasks; 
+    }
   };
 
-  onMounted(() => { loadData(); fetchAssignees(); window.addEventListener('resize', fitScreen); setTimeout(() => isAppLoading.value = false, 1000); });
+  // --- LIFECYCLE ---
+  onMounted(() => { 
+      loadData(); 
+      fetchAssignees(); 
+      fetchPricing(); // Load harga dari DB
+      window.addEventListener('resize', fitScreen); 
+      setTimeout(() => isAppLoading.value = false, 1000); 
+  });
+  
   onUnmounted(() => window.removeEventListener('resize', fitScreen));
+  
   watch([employee, regularTasks, overtimeTasks], saveData, { deep: true });
 
   return {
-    employee, regularTasks, overtimeTasks, assigneeList, 
+    // State
+    employee, regularTasks, overtimeTasks, assigneeList, pricing,
     isDarkMode, isLoading, isSyncing, isRefreshing, isAssigneeLoading, 
     isAppLoading, htmlContent, scale, previewContainer, enhancingId,
-    // Export State & Functions
+    
+    // Payment State
     isPaymentLoading, isEmailModalOpen, emailRecipient, pendingExportType,
-    openPaymentModal, processPayment,
-    // Utils
+    
+    // Actions
+    openPaymentModal, processPayment, fetchPricing,
     syncData, fetchAssignees, enhanceDescription, loadPreview, downloadExcel,
+    
+    // Utils
     autoFillLink, isWeekend, toggleDarkMode, fitScreen, printFromIframe,
     zoomIn: () => scale.value < 2 ? scale.value += 0.1 : null,
     zoomOut: () => scale.value > 0.3 ? scale.value -= 0.1 : null,

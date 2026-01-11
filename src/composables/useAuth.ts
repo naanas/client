@@ -1,15 +1,41 @@
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
+import { createClient } from '@supabase/supabase-js';
 
+// --- CONFIG ---
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const TOKEN_KEY = 'timesheet_auth_token';
 
+// Inisialisasi Supabase Client (Hanya untuk ambil Role)
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// --- GLOBAL STATE ---
 const user = ref<any>(null);
+const userRole = ref<string>('user'); // Default role 'user'
 
 export function useAuth() {
-  // FIX 1: Set default TRUE agar saat refresh dia loading dulu, gak langsung nunjukin login
   const loading = ref(true); 
   const authError = ref('');
+
+  // Helper: Fetch Role dari tabel 'profiles'
+  const fetchUserRole = async (userId: string) => {
+    try {
+      // HAPUS 'error' DARI DESTRUCTURING AGAR TIDAK ERROR TYPESCRIPT
+      const { data } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .single();
+      
+      if (data) {
+        userRole.value = data.role;
+      }
+    } catch (e) {
+      console.error("Gagal mengambil role user", e);
+    }
+  };
 
   const setAuthHeader = (token: string | null) => {
     if (token) {
@@ -22,7 +48,6 @@ export function useAuth() {
   const checkSession = async () => {
     const token = localStorage.getItem(TOKEN_KEY);
     
-    // Jika tidak ada token, matikan loading & biarkan user di halaman login
     if (!token) {
         loading.value = false;
         return;
@@ -32,13 +57,19 @@ export function useAuth() {
     setAuthHeader(token);
     
     try {
+      // 1. Ambil data User dari Backend
       const { data } = await axios.get(`${API_URL}/api/auth/me`);
       user.value = data.user;
+
+      // 2. Ambil Role user tersebut (untuk UI Admin)
+      if (user.value?.id) {
+          await fetchUserRole(user.value.id);
+      }
+
     } catch (e) {
       console.log('Session expired / Invalid Token');
       handleLogout();
     } finally {
-      // FIX 2: Pastikan loading mati entah sukses atau gagal
       loading.value = false;
     }
   };
@@ -70,7 +101,13 @@ export function useAuth() {
         const token = data.session.access_token;
         localStorage.setItem(TOKEN_KEY, token);
         setAuthHeader(token);
+        
         user.value = data.user;
+
+        // Ambil Role setelah login sukses
+        if (data.user?.id) {
+            await fetchUserRole(data.user.id);
+        }
       }
     } catch (e: any) {
       authError.value = e.response?.data?.error || 'Login Gagal';
@@ -89,6 +126,7 @@ export function useAuth() {
     localStorage.removeItem(TOKEN_KEY);
     setAuthHeader(null);
     user.value = null;
+    userRole.value = 'user'; // Reset role ke user biasa
   };
 
   onMounted(() => {
@@ -97,6 +135,7 @@ export function useAuth() {
 
   return { 
     user, 
+    userRole, 
     loading, 
     authError, 
     handleRegister, 
