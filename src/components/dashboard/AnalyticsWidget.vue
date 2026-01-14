@@ -4,6 +4,7 @@ import { computed } from 'vue';
 const props = defineProps<{
     transactions: any[];
     isDarkMode: boolean;
+    isAdmin?: boolean;
 }>();
 
 const totalPaid = computed(() => props.transactions.filter(t => t.status === 'PAID').length);
@@ -20,8 +21,8 @@ function formatRupiah(amount: number) {
 
 <template>
     <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <!-- Card 1: Revenue -->
-        <div :class="['p-6 rounded-2xl relative overflow-hidden transition-all duration-500 hover:scale-105', 
+        <!-- Card 1: Revenue (Admin Only) -->
+        <div v-if="isAdmin" :class="['p-6 rounded-2xl relative overflow-hidden transition-all duration-500 hover:scale-105', 
             isDarkMode ? 'bg-gradient-to-br from-black to-red-950 border border-red-900/30' : 'bg-white shadow-xl glass-card border border-white/50']">
             <div :class="['absolute -right-4 -top-4 text-8xl opacity-10 font-bold', isDarkMode ? 'text-red-600' : 'text-blue-200']">Rp</div>
             <div class="relative z-10">

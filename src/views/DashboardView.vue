@@ -198,7 +198,7 @@
 
                     <!-- ANALYTICS WIDGET -->
                     <div class="w-full mb-12">
-                        <AnalyticsWidget :transactions="transactions" :isDarkMode="isDarkMode" />
+                        <AnalyticsWidget :transactions="transactions" :isDarkMode="isDarkMode" :isAdmin="isAdmin" />
                     </div>
                     
                     <h3 :class="['text-xs font-bold uppercase tracking-widest mb-6 w-full text-left ml-2', isDarkMode ? 'text-red-900/50' : 'text-slate-400']">Quick Actions</h3>
