@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import { ref, onMounted, computed, watch } from 'vue';
+    import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
     import { useRouter, useRoute } from 'vue-router';
     import { useTimesheet } from '../composables/useTimesheet';
     import { useAuth } from '../composables/useAuth';
@@ -78,7 +78,11 @@
         checkMobile();
         window.addEventListener('resize', checkMobile);
         if (route.query.tab === 'history') activeTab.value = 'history';
-        if (user.value) fetchAnalytics();
+        if (user.value) fetchAnalytics().catch(e => console.error("Analytics Error:", e));
+    });
+
+    onUnmounted(() => {
+        window.removeEventListener('resize', checkMobile);
     });
 </script>
     
