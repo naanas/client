@@ -58,14 +58,14 @@ const closeModal = () => {
         @click="closeModal"
       ></div>
 
-      <div class="relative w-full max-w-md overflow-hidden transition-all transform bg-neutral-900 border-2 border-red-900/50 shadow-[0_0_50px_rgba(220,38,38,0.15)] rounded-sm">
+      <div class="relative w-11/12 max-w-md overflow-hidden transition-all transform bg-neutral-900 border-2 border-red-900/50 shadow-[0_0_50px_rgba(220,38,38,0.15)] rounded-sm">
         
-        <div class="relative p-6 text-center border-b border-red-900/30 bg-gradient-to-b from-red-950 to-neutral-900">
-          <h3 class="font-serif text-2xl font-bold tracking-widest text-red-500 uppercase drop-shadow-md">Offering Required</h3>
-          <p class="mt-2 text-[10px] text-stone-500 uppercase tracking-[0.2em]">Sacrifice for {{ pendingExportType }}</p>
+        <div class="relative p-4 md:p-6 text-center border-b border-red-900/30 bg-gradient-to-b from-red-950 to-neutral-900">
+          <h3 class="font-serif text-xl md:text-2xl font-bold tracking-widest text-red-500 uppercase drop-shadow-md">Offering Required</h3>
+          <p class="mt-2 text-[9px] md:text-[10px] text-stone-500 uppercase tracking-[0.2em]">Sacrifice for {{ pendingExportType }}</p>
         </div>
 
-        <div class="p-6 space-y-6">
+        <div class="p-4 md:p-6 space-y-4 md:space-y-6">
           
           <div>
               <label class="block mb-3 text-xs font-bold tracking-widest text-center text-red-700 uppercase">CHOOSE YOUR PATH</label>
