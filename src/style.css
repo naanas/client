@@ -2,7 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Tambahkan ini untuk mengubah background menjadi putih */
+@layer utilities {
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-lg border border-white/20;
+  }
+  
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 rounded-full hover:bg-slate-400 transition-colors;
+  }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-red-900 border border-red-950;
+  }
+}
+
+/* Base Styles */
 body {
-  background-color: white;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
