@@ -29,6 +29,9 @@
       loadPreview, isLoading,
       openPaymentModal, isPaymentLoading 
     } = useTimesheet();
+
+    // Fix unused variable warning
+    void previewContainer;
     
     const isAdmin = computed(() => user.value && userRole.value === 'admin');
 
@@ -112,7 +115,7 @@
         @update:activeTab="(t) => { activeTab = t as Tab; closeSidebar(); }"
         @toggleDarkMode="toggleDarkMode"
         @logout="handleLogout().then(() => router.replace('/auth'))"
-        @loadPreview="loadPreview"
+        @loadPreview="(t) => loadPreview(t as 'timesheet' | 'mandays')"
         @close="closeSidebar"
     >
         <!-- DESKTOP: Forms in Sidebar Slot (Hidden on Mobile) -->
@@ -142,7 +145,7 @@
             @zoomOut="zoomOut"
             @fitScreen="fitScreen"
             @update:scale="scale = $event"
-            @openPaymentModal="openPaymentModal"
+            @openPaymentModal="(t) => openPaymentModal(t as 'timesheet' | 'mandays')"
             @toggleSidebar="toggleSidebar"
         />
         
