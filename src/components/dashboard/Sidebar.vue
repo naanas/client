@@ -93,6 +93,13 @@ const emit = defineEmits<{
                         : (isDarkMode ? 'bg-black/50 text-stone-600 border border-stone-800 hover:text-red-500 hover:border-red-900 font-cinzel' : 'bg-white text-red-500 hover:bg-red-50 shadow-sm')]">
                     {{ isDarkMode ? '⚙️ OVERLORD SETTINGS' : '⚙️ ADMIN SETTINGS' }}
                 </button>
+
+                <!-- Mobile Only Logout -->
+                <button @click="emit('logout')" 
+                    :class="['md:hidden w-full py-2 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-2 mt-2', 
+                    isDarkMode ? 'bg-red-950/30 text-stone-500 border border-red-900/30 hover:border-red-600 hover:text-red-500 font-cinzel' : 'bg-slate-100 text-slate-500 hover:bg-slate-200']">
+                    {{ isDarkMode ? '🚪 LEAVE SANCTUM' : '🚪 LOGOUT' }}
+                </button>
             </div>
 
             <div class="flex justify-end mt-4">

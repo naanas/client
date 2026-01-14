@@ -34,7 +34,7 @@
     // Fix unused variable warning
     void previewContainer;
     
-    const isAdmin = computed(() => user.value && userRole.value === 'admin');
+    const isAdmin = computed(() => !!(user.value && userRole.value === 'admin'));
 
     // Analytics Data
     const transactions = ref<any[]>([]);
@@ -172,85 +172,97 @@
             />
 
             <!-- PREVIEW AREA -->
-            <div v-if="activeTab === 'timesheet' || activeTab === 'mandays'" ref="previewContainer" class="relative z-10 transition-all duration-500 ease-out w-full flex justify-center">
-                <div v-if="htmlContent" :class="['transition-transform duration-200 origin-top-center', isDarkMode ? 'bg-white shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-stone-800' : 'bg-white shadow-2xl ring-1 ring-black/5 rounded-sm']" :style="{ transform: `scale(${scale})`, transformOrigin: 'top center', width: '1123px', height: '794px', flexShrink: 0 }">
-                    <iframe id="preview-frame" :srcdoc="htmlContent" class="block w-full h-full border-none"></iframe>
+            <Transition name="scale-fade" mode="out-in">
+                <div v-if="activeTab === 'timesheet' || activeTab === 'mandays'" :key="activeTab" ref="previewContainer" class="relative z-10 transition-all duration-500 ease-out w-full flex justify-center">
+                    <div v-if="htmlContent" :class="['transition-transform duration-200 origin-top-center', isDarkMode ? 'bg-white shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-stone-800' : 'bg-white shadow-2xl ring-1 ring-black/5 rounded-sm']" :style="{ transform: `scale(${scale})`, transformOrigin: 'top center', width: '1123px', height: '794px', flexShrink: 0 }">
+                        <iframe id="preview-frame" :srcdoc="htmlContent" class="block w-full h-full border-none"></iframe>
+                    </div>
+                    <div v-else :class="['flex flex-col items-center justify-center h-full mt-32 text-center opacity-60', isDarkMode ? 'text-stone-700' : 'text-slate-400']">
+                        <div :class="['text-6xl mb-4', isDarkMode ? 'grayscale opacity-20' : '']">{{ isDarkMode ? '🕯️' : '📄' }}</div>
+                        <p class="font-serif text-sm italic">{{ isDarkMode ? '"The parchment is blank. Perform the ritual on the left."' : 'Silakan isi data di form kiri & klik Update Preview.' }}</p>
+                    </div>
                 </div>
-                <div v-else :class="['flex flex-col items-center justify-center h-full mt-32 text-center opacity-60', isDarkMode ? 'text-stone-700' : 'text-slate-400']">
-                    <div :class="['text-6xl mb-4', isDarkMode ? 'grayscale opacity-20' : '']">{{ isDarkMode ? '🕯️' : '📄' }}</div>
-                    <p class="font-serif text-sm italic">{{ isDarkMode ? '"The parchment is blank. Perform the ritual on the left."' : 'Silakan isi data di form kiri & klik Update Preview.' }}</p>
-                </div>
-            </div>
+            </Transition>
 
             <!-- HOME / DASHBOARD -->
-            <div v-if="activeTab === 'home'" :class="['flex flex-col items-center justify-center w-full h-full max-w-5xl mx-auto', isDarkMode ? 'text-stone-600' : 'text-slate-400']">
-                <div class="w-full mb-12 text-center">
-                    <h2 :class="['text-3xl font-bold mb-2', isDarkMode ? 'text-stone-400 font-cinzel drop-shadow-lg' : 'text-slate-700']">
-                        {{ isDarkMode ? `Sanctum of ${user?.email?.split('@')[0]}` : `Halo, ${user?.email?.split('@')[0]}` }}
-                    </h2>
-                    <p :class="['text-sm', isDarkMode ? 'text-stone-600 italic font-serif' : 'text-slate-500']">
-                        {{ isDarkMode ? 'Your dark deeds are recorded below.' : 'Selamat datang kembali di dashboard Anda.' }}
-                    </p>
+            <Transition name="fade" mode="out-in">
+                <div v-if="activeTab === 'home'" class="flex flex-col items-center justify-center w-full h-full max-w-5xl mx-auto" :class="isDarkMode ? 'text-stone-600' : 'text-slate-400'">
+                    <div class="w-full mb-12 text-center">
+                        <h2 :class="['text-3xl font-bold mb-2', isDarkMode ? 'text-stone-400 font-cinzel drop-shadow-lg' : 'text-slate-700']">
+                            {{ isDarkMode ? `Sanctum of ${user?.email?.split('@')[0]}` : `Halo, ${user?.email?.split('@')[0]}` }}
+                        </h2>
+                        <p :class="['text-sm', isDarkMode ? 'text-stone-600 italic font-serif' : 'text-slate-500']">
+                            {{ isDarkMode ? 'Your dark deeds are recorded below.' : 'Selamat datang kembali di dashboard Anda.' }}
+                        </p>
+                    </div>
+
+                    <!-- ANALYTICS WIDGET -->
+                    <div class="w-full mb-12">
+                        <AnalyticsWidget :transactions="transactions" :isDarkMode="isDarkMode" />
+                    </div>
+                    
+                    <h3 :class="['text-xs font-bold uppercase tracking-widest mb-6 w-full text-left ml-2', isDarkMode ? 'text-red-900/50' : 'text-slate-400']">Quick Actions</h3>
+
+                    <div class="grid w-full grid-cols-1 gap-6 md:grid-cols-3">
+                        <!-- Quick Action Cards with Staggered Animation -->
+                        <button @click="activeTab='timesheet'" 
+                            :class="['p-8 transition-all duration-300 group rounded-2xl relative overflow-hidden animate-slide-up', 
+                            isDarkMode 
+                                ? 'border bg-neutral-900 border-red-900/20 hover:border-red-600 hover:bg-red-950/10 hover:shadow-[0_0_20px_rgba(220,38,38,0.2)]' 
+                                : 'bg-white shadow-lg hover:shadow-xl hover:-translate-y-1 glass-card']"
+                            style="animation-delay: 0.1s;">
+                            <div class="absolute top-0 right-0 p-4 opacity-10">
+                                <span class="text-6xl">⏱️</span>
+                            </div>
+                            <div class="mb-4 text-4xl transition opacity-50 group-hover:opacity-100 group-hover:scale-110">⏱️</div>
+                            <div :class="['font-bold text-lg', isDarkMode ? 'text-stone-400 group-hover:text-red-500 font-cinzel tracking-widest' : 'text-slate-700 group-hover:text-blue-600']">Create Timesheet</div>
+                            <p class="mt-2 text-xs opacity-60">Generate Laporan Lembur Bulanan.</p>
+                        </button>
+
+                        <button @click="activeTab='mandays'" 
+                            :class="['p-8 transition-all duration-300 group rounded-2xl relative overflow-hidden animate-slide-up', 
+                            isDarkMode 
+                                ? 'border bg-neutral-900 border-red-900/20 hover:border-red-600 hover:bg-red-950/10 hover:shadow-[0_0_20px_rgba(220,38,38,0.2)]' 
+                                : 'bg-white shadow-lg hover:shadow-xl hover:-translate-y-1 glass-card']"
+                            style="animation-delay: 0.2s;">
+                            <div class="absolute top-0 right-0 p-4 opacity-10">
+                                <span class="text-6xl">📄</span>
+                            </div>
+                            <div class="mb-4 text-4xl transition opacity-50 group-hover:opacity-100 group-hover:scale-110">📄</div>
+                            <div :class="['font-bold text-lg', isDarkMode ? 'text-stone-400 group-hover:text-red-500 font-cinzel tracking-widest' : 'text-slate-700 group-hover:text-blue-600']">Create Mandays</div>
+                            <p class="mt-2 text-xs opacity-60">Generate Laporan Harian Proyek.</p>
+                        </button>
+
+                        <button @click="activeTab='history'" 
+                            :class="['p-8 transition-all duration-300 group rounded-2xl relative overflow-hidden animate-slide-up', 
+                            isDarkMode 
+                                ? 'border bg-neutral-900 border-red-900/20 hover:border-red-600 hover:bg-red-950/10 hover:shadow-[0_0_20px_rgba(220,38,38,0.2)]' 
+                                : 'bg-white shadow-lg hover:shadow-xl hover:-translate-y-1 glass-card']"
+                            style="animation-delay: 0.3s;">
+                            <div class="absolute top-0 right-0 p-4 opacity-10">
+                                <span class="text-6xl">📜</span>
+                            </div>
+                            <div class="mb-4 text-4xl transition opacity-50 group-hover:opacity-100 group-hover:scale-110">📜</div>
+                            <div :class="['font-bold text-lg', isDarkMode ? 'text-stone-400 group-hover:text-red-500 font-cinzel tracking-widest' : 'text-slate-700 group-hover:text-blue-600']">{{ isDarkMode ? 'Grimoire Records' : 'View History' }}</div>
+                            <p class="mt-2 text-xs opacity-60">Lihat status pembayaran & unduh ulang.</p>
+                        </button>
+                    </div>
                 </div>
-
-                <!-- ANALYTICS WIDGET -->
-                <div class="w-full mb-12">
-                    <AnalyticsWidget :transactions="transactions" :isDarkMode="isDarkMode" />
-                </div>
-                
-                <h3 :class="['text-xs font-bold uppercase tracking-widest mb-6 w-full text-left ml-2', isDarkMode ? 'text-red-900/50' : 'text-slate-400']">Quick Actions</h3>
-
-                <div class="grid w-full grid-cols-1 gap-6 md:grid-cols-3">
-                    <button @click="activeTab='timesheet'" 
-                        :class="['p-8 transition group rounded-2xl relative overflow-hidden', 
-                        isDarkMode 
-                            ? 'border bg-neutral-900 border-red-900/20 hover:border-red-600 hover:bg-red-950/10 hover:shadow-[0_0_20px_rgba(220,38,38,0.2)]' 
-                            : 'bg-white shadow-lg hover:shadow-xl hover:-translate-y-1 glass-card']">
-                        <div class="absolute top-0 right-0 p-4 opacity-10">
-                             <span class="text-6xl">⏱️</span>
-                        </div>
-                        <div class="mb-4 text-4xl transition opacity-50 group-hover:opacity-100 group-hover:scale-110">⏱️</div>
-                        <div :class="['font-bold text-lg', isDarkMode ? 'text-stone-400 group-hover:text-red-500 font-cinzel tracking-widest' : 'text-slate-700 group-hover:text-blue-600']">Create Timesheet</div>
-                        <p class="mt-2 text-xs opacity-60">Generate Laporan Lembur Bulanan.</p>
-                    </button>
-
-                    <button @click="activeTab='mandays'" 
-                        :class="['p-8 transition group rounded-2xl relative overflow-hidden', 
-                        isDarkMode 
-                            ? 'border bg-neutral-900 border-red-900/20 hover:border-red-600 hover:bg-red-950/10 hover:shadow-[0_0_20px_rgba(220,38,38,0.2)]' 
-                            : 'bg-white shadow-lg hover:shadow-xl hover:-translate-y-1 glass-card']">
-                        <div class="absolute top-0 right-0 p-4 opacity-10">
-                             <span class="text-6xl">📄</span>
-                        </div>
-                        <div class="mb-4 text-4xl transition opacity-50 group-hover:opacity-100 group-hover:scale-110">📄</div>
-                        <div :class="['font-bold text-lg', isDarkMode ? 'text-stone-400 group-hover:text-red-500 font-cinzel tracking-widest' : 'text-slate-700 group-hover:text-blue-600']">Create Mandays</div>
-                        <p class="mt-2 text-xs opacity-60">Generate Laporan Harian Proyek.</p>
-                    </button>
-
-                    <button @click="activeTab='history'" 
-                        :class="['p-8 transition group rounded-2xl relative overflow-hidden', 
-                        isDarkMode 
-                            ? 'border bg-neutral-900 border-red-900/20 hover:border-red-600 hover:bg-red-950/10 hover:shadow-[0_0_20px_rgba(220,38,38,0.2)]' 
-                            : 'bg-white shadow-lg hover:shadow-xl hover:-translate-y-1 glass-card']">
-                        <div class="absolute top-0 right-0 p-4 opacity-10">
-                             <span class="text-6xl">📜</span>
-                        </div>
-                        <div class="mb-4 text-4xl transition opacity-50 group-hover:opacity-100 group-hover:scale-110">📜</div>
-                        <div :class="['font-bold text-lg', isDarkMode ? 'text-stone-400 group-hover:text-red-500 font-cinzel tracking-widest' : 'text-slate-700 group-hover:text-blue-600']">{{ isDarkMode ? 'Grimoire Records' : 'View History' }}</div>
-                        <p class="mt-2 text-xs opacity-60">Lihat status pembayaran & unduh ulang.</p>
-                    </button>
-                </div>
-            </div>
+            </Transition>
 
             <!-- HISTORY LIST -->
-            <div v-if="activeTab === 'history'" class="w-full max-w-5xl">
-                <HistoryList />
-            </div>
+            <Transition name="slide-fade" mode="out-in">
+                <div v-if="activeTab === 'history'" class="w-full max-w-5xl">
+                    <HistoryList />
+                </div>
+            </Transition>
 
             <!-- ADMIN SETTINGS -->
-            <div v-if="activeTab === 'admin' && isAdmin" class="w-full max-w-3xl">
-                <AdminSettings />
-            </div>
+            <Transition name="slide-fade" mode="out-in">
+                <div v-if="activeTab === 'admin' && isAdmin" class="w-full max-w-3xl">
+                    <AdminSettings />
+                </div>
+            </Transition>
 
         </div>
     </main>
@@ -263,6 +275,20 @@
 }
 .animate-shimmer {
   animation: shimmer 1.5s infinite;
+}
+
+@keyframes slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.animate-slide-up {
+    animation: slide-up 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
 }
 
 .fade-enter-active, .fade-leave-active { transition: opacity 0.5s ease; }
