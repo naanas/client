@@ -181,6 +181,21 @@
                         <button @click.stop.prevent="zoomIn" :class="['w-8 h-8 font-bold flex items-center justify-center rounded-lg transition', isDarkMode ? 'bg-black text-stone-400 border border-stone-800' : 'bg-slate-100 text-slate-600']">+</button>
                     </div>
                 </div>
+
+                <!-- Mobile Payment/PDF Button -->
+                <button 
+                    @click="openPaymentModal(activeTab as 'timesheet' | 'mandays')" 
+                    :disabled="isPaymentLoading"
+                    :class="['group relative flex w-full justify-center items-center gap-2 px-5 py-3 text-xs font-bold transition-all rounded-xl active:scale-95 disabled:opacity-50 overflow-hidden', 
+                    isDarkMode 
+                        ? 'text-stone-200 border bg-red-950 border-red-800 hover:border-red-600 hover:shadow-[0_0_20px_rgba(220,38,38,0.4)] font-cinzel tracking-widest' 
+                        : 'text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg hover:shadow-blue-500/30']"
+                >
+                    <div v-if="isDarkMode" class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-red-600/20 to-transparent group-hover:animate-shimmer"></div>
+                    <span v-if="isPaymentLoading" class="animate-spin">⏳</span>
+                    <span v-else>{{ isDarkMode ? '📜' : '📧' }}</span>
+                    {{ isDarkMode ? 'MANIFEST PDF' : 'Email PDF' }}
+                </button>
             </div>
 
             <!-- PREVIEW AREA -->
