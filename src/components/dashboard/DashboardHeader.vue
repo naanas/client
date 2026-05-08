@@ -14,6 +14,7 @@ const emit = defineEmits<{
     (e: 'fitScreen'): void;
     (e: 'update:scale', val: number): void;
     (e: 'openPaymentModal', tab: string): void;
+    (e: 'downloadExcel', tab: string): void;
     (e: 'toggleSidebar'): void;
 }>();
 </script>
@@ -36,19 +37,30 @@ const emit = defineEmits<{
             <button @click="emit('fitScreen')" :class="['px-2 text-[9px] font-bold rounded ml-1', isDarkMode ? 'text-red-500 border border-red-900/30 hover:bg-red-900/20 font-cinzel' : 'text-blue-600 bg-white shadow-sm hover:bg-blue-50']">FIT</button>
         </div>
         
-        <button 
-            v-if="activeTab === 'timesheet' || activeTab === 'mandays'" 
-            @click="emit('openPaymentModal', activeTab)" 
-            :disabled="isPaymentLoading"
-            :class="['hidden md:flex group relative items-center gap-2 px-5 py-2 text-xs font-bold transition-all rounded-lg active:scale-95 disabled:opacity-50 overflow-hidden', 
-            isDarkMode 
-                ? 'text-stone-200 border bg-red-950 border-red-800 hover:border-red-600 hover:shadow-[0_0_20px_rgba(220,38,38,0.4)] font-cinzel tracking-widest' 
-                : 'text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg hover:shadow-blue-500/30']"
-        >
-            <div v-if="isDarkMode" class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-red-600/20 to-transparent group-hover:animate-shimmer"></div>
-            <span v-if="isPaymentLoading" class="animate-spin">⏳</span>
-            <span v-else>{{ isDarkMode ? '📜' : '📧' }}</span>
-            {{ isDarkMode ? 'MANIFEST PDF' : 'Email PDF' }}
-        </button>
+        <div v-if="activeTab === 'timesheet' || activeTab === 'mandays'" class="flex items-center gap-2">
+            <button
+                @click="emit('downloadExcel', activeTab)"
+                :class="['px-4 py-2 text-xs font-bold rounded-lg transition-all active:scale-95',
+                isDarkMode
+                    ? 'text-emerald-300 border border-emerald-900/50 bg-emerald-950/30 hover:bg-emerald-900/40'
+                    : 'text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm']"
+            >
+                {{ isDarkMode ? 'EXPORT XLSX' : 'Download Excel' }}
+            </button>
+
+            <button 
+                @click="emit('openPaymentModal', activeTab)" 
+                :disabled="isPaymentLoading"
+                :class="['group relative items-center gap-2 px-5 py-2 text-xs font-bold transition-all rounded-lg active:scale-95 disabled:opacity-50 overflow-hidden flex', 
+                isDarkMode 
+                    ? 'text-stone-200 border bg-red-950 border-red-800 hover:border-red-600 hover:shadow-[0_0_20px_rgba(220,38,38,0.4)] font-cinzel tracking-widest' 
+                    : 'text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg hover:shadow-blue-500/30']"
+            >
+                <div v-if="isDarkMode" class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-red-600/20 to-transparent group-hover:animate-shimmer"></div>
+                <span v-if="isPaymentLoading" class="animate-spin">⏳</span>
+                <span v-else>{{ isDarkMode ? '📜' : '📧' }}</span>
+                {{ isDarkMode ? 'MANIFEST PDF' : 'Email PDF' }}
+            </button>
+        </div>
     </header>
 </template>

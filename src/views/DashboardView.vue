@@ -28,7 +28,7 @@
       isDarkMode, toggleDarkMode, isAppLoading,
       htmlContent, scale, zoomIn, zoomOut, fitScreen, previewContainer,
       loadPreview, isLoading,
-      openPaymentModal, isPaymentLoading 
+      openPaymentModal, isPaymentLoading, downloadExcel
     } = useTimesheet();
 
     // Fix unused variable warning
@@ -47,11 +47,6 @@
 
     watch(activeTab, (newTab) => {
         if (newTab === 'home') fetchAnalytics();
-    });
-
-    onMounted(() => {
-        if (route.query.tab === 'history') activeTab.value = 'history';
-        if (user.value) fetchAnalytics();
     });
 
     // Header Title
@@ -150,6 +145,7 @@
             @zoomOut="zoomOut"
             @fitScreen="fitScreen"
             @update:scale="scale = $event"
+            @downloadExcel="(t) => downloadExcel(t as 'timesheet' | 'mandays')"
             @openPaymentModal="(t) => openPaymentModal(t as 'timesheet' | 'mandays')"
             @toggleSidebar="toggleSidebar"
         />

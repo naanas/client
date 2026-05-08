@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue';
+import { ref, watch, computed } from 'vue';
 import dayjs from 'dayjs';
 import { useTimesheet } from '../../composables/useTimesheet';
 
@@ -8,7 +8,7 @@ const {
   assigneeList, isSyncing, isAssigneeLoading,
   syncData, fetchAssignees,
   isWeekend, addRegularRow, removeRegularRow, addOvertimeRow, removeOvertimeRow,
-  downloadExcel, isDarkMode, enhanceDescription, enhancingId, getPreviewHtml
+  isDarkMode, enhanceDescription, enhancingId, getPreviewHtml
 } = useTimesheet();
 
 const isModalOpen = ref(false);
@@ -26,6 +26,8 @@ const handlePreview = async () => {
         alert("Failed to generate preview");
     }
 };
+
+const refreshAssignees = () => fetchAssignees(true);
 
 // --- DYNAMIC STYLES ---
 const inputClass = computed(() => isDarkMode.value
@@ -64,10 +66,7 @@ const updatePeriodDates = () => {
 };
 
 watch([selectedMonth, selectedYear], updatePeriodDates);
-onMounted(() => {
-    updatePeriodDates();
-    fetchAssignees(); 
-});
+updatePeriodDates();
 
 // Helper Status
 const updateDescription = (task: any) => {
@@ -106,7 +105,7 @@ const updateDescription = (task: any) => {
 
     <!-- MODAL OVERLAY -->
     <Teleport to="body">
-        <div v-if="isModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+        <div v-if="isModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 animate-fade-in">
             <div :class="['w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl relative flex flex-col', 
                 isDarkMode ? 'bg-neutral-950 border border-red-900/50 shadow-red-900/20' : 'bg-slate-50 border border-slate-200 shadow-xl']">
 
@@ -202,7 +201,7 @@ const updateDescription = (task: any) => {
                                         {{ isDarkMode ? 'INVOKE FROM DB' : 'Sync DB' }}
                                     </button>
                                     <div class="w-[1px] h-4 bg-stone-800"></div>
-                                    <button @click="fetchAssignees" :disabled="isAssigneeLoading" 
+                                    <button @click="refreshAssignees" :disabled="isAssigneeLoading" 
                                         :class="['text-[10px] flex items-center gap-2 px-3 py-1.5 rounded-md transition-all font-bold', 
                                         isDarkMode ? 'text-red-500 hover:bg-red-900/30' : 'text-blue-500 hover:bg-blue-50']">
                                         <svg v-if="isAssigneeLoading" class="w-3 h-3 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -357,7 +356,7 @@ const updateDescription = (task: any) => {
 
                         <div v-for="(task, index) in overtimeTasks" :key="index" 
                             :class="['relative p-6 border rounded-2xl shadow-sm transition-all', 
-                            isDarkMode ? 'bg-neutral-900/30 border-red-900/20 hover:border-red-600/40' : 'bg-white border-slate-100 hover:shadow-md']">
+                            isDarkMode ? 'group bg-neutral-900/30 border-red-900/20 hover:border-red-600/40' : 'group bg-white border-slate-100 hover:shadow-md']">
                             
                             <button @click="removeOvertimeRow(index)" 
                                 :class="['absolute flex items-center justify-center w-6 h-6 rounded-full shadow -top-3 -right-3 transition-all opacity-0 group-hover:opacity-100 hover:scale-110', 
@@ -403,11 +402,6 @@ const updateDescription = (task: any) => {
                     {{ isDarkMode ? '👁️ FORESEE' : 'Preview' }}
                 </button>
 
-                <button @click="downloadExcel('timesheet')" 
-                    :class="['px-6 py-2.5 rounded-xl font-bold text-sm text-white transition-all shadow-lg active:scale-95', 
-                    isDarkMode ? 'bg-red-900 hover:bg-red-800 border-red-950 tracking-widest font-cinzel' : 'bg-emerald-600 hover:bg-emerald-700']">
-                    {{ isDarkMode ? 'GENERATE' : 'Download Excel' }}
-                </button>
             </div>
 
         </div>

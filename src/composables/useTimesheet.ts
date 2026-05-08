@@ -40,6 +40,7 @@ const scale = ref(0.6);
 const previewContainer = ref<HTMLDivElement | null>(null);
 const enhancingId = ref<string | null>(null);
 const assigneeList = ref<string[]>([]);
+const assigneeFetchedAt = ref(0);
 
 // Data Employee
 const employee = ref({
@@ -68,17 +69,22 @@ export function useTimesheet() {
     try {
       const { data } = await axios.post(`${API_URL}/api/sync`);
       alert(data.status === 'updated' ? `✅ Sukses! ${data.count} data baru.` : 'Data sudah update.');
-      await fetchAssignees();
+      await fetchAssignees(true);
     } catch (e) { alert('❌ Gagal Sync.'); }
     finally { isSyncing.value = false; }
   };
 
-  const fetchAssignees = async () => {
+  const fetchAssignees = async (force = false) => {
+    if (isAssigneeLoading.value) return;
+    const cacheAgeMs = Date.now() - assigneeFetchedAt.value;
+    if (!force && assigneeList.value.length > 0 && cacheAgeMs < 60_000) return;
+
     isRefreshing.value = true;
     isAssigneeLoading.value = true;
     try {
       const { data } = await axios.get(`${API_URL}/api/assignees`);
       assigneeList.value = data;
+      assigneeFetchedAt.value = Date.now();
     }
     catch (e) { console.error("Gagal load assignees", e); }
     finally { setTimeout(() => { isRefreshing.value = false; isAssigneeLoading.value = false; }, 500); }
