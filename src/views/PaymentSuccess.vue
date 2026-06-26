@@ -1,25 +1,55 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import axios from 'axios';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const router = useRouter();
 const route = useRoute();
 
 const seconds = ref(5);
-const externalId = route.query.external_id || '-';
+const externalId = String(route.query.external_id || '');
+const fulfillStatus = ref<'loading' | 'ok' | 'pending' | 'error'>('loading');
+const fulfillMessage = ref('');
 let timer: any = null;
 
-// GANTI LOGIC REDIRECT KE HISTORY
 const goHistory = () => {
-  router.push('/?tab=history'); 
+  router.push('/?tab=history');
+};
+
+const fulfillPayment = async () => {
+  if (!externalId || externalId === '-') {
+    fulfillStatus.value = 'error';
+    fulfillMessage.value = 'ID transaksi tidak ditemukan di URL.';
+    return;
+  }
+
+  try {
+    const { data } = await axios.post(`${API_URL}/api/payment/fulfill`, {
+      external_id: externalId,
+    });
+    fulfillStatus.value = 'ok';
+    fulfillMessage.value = data.message || 'PDF dikirim ke email Anda.';
+  } catch (e: any) {
+    const msg = e.response?.data?.error || e.message;
+    if (String(msg).toLowerCase().includes('belum lunas')) {
+      fulfillStatus.value = 'pending';
+      fulfillMessage.value = 'Pembayaran masih diproses. Cek Riwayat Transaksi beberapa saat lagi.';
+    } else {
+      fulfillStatus.value = 'error';
+      fulfillMessage.value = msg || 'Gagal mengirim PDF. Coba tombol Cek di Riwayat Transaksi.';
+    }
+  }
 };
 
 onMounted(() => {
+  void fulfillPayment();
+
   timer = setInterval(() => {
     seconds.value--;
     if (seconds.value <= 0) {
       clearInterval(timer);
-      goHistory(); // Panggil fungsi baru
+      goHistory();
     }
   }, 1000);
 });
@@ -44,10 +74,16 @@ onUnmounted(() => {
         Invoice ID <span class="font-mono font-bold text-slate-700 dark:text-slate-300">#{{ externalId }}</span> lunas.
       </p>
       
-      <div class="px-4 py-3 mb-6 text-sm text-left text-blue-700 border border-blue-100 rounded-lg bg-blue-50 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800">
-        📧 <b>PENTING:</b><br>
-        Sistem sedang memproses PDF Anda.<br>
-        Silakan cek <b>Riwayat Transaksi</b> atau Email Anda.
+      <div class="px-4 py-3 mb-6 text-sm text-left border rounded-lg"
+        :class="{
+          'text-blue-700 border-blue-100 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800': fulfillStatus === 'loading' || fulfillStatus === 'pending',
+          'text-green-700 border-green-100 bg-green-50 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800': fulfillStatus === 'ok',
+          'text-red-700 border-red-100 bg-red-50 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800': fulfillStatus === 'error',
+        }">
+        <template v-if="fulfillStatus === 'loading'">📧 Memproses PDF dan mengirim ke email...</template>
+        <template v-else-if="fulfillStatus === 'ok'">📧 <b>Berhasil!</b><br>{{ fulfillMessage }}</template>
+        <template v-else-if="fulfillStatus === 'pending'">⏳ {{ fulfillMessage }}</template>
+        <template v-else>❌ {{ fulfillMessage }}</template>
       </div>
 
       <p class="mb-2 text-xs text-slate-400">
