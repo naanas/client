@@ -36,21 +36,32 @@ watch(() => user.value?.id, (newId) => {
 }, { immediate: true });
 
 const checkStatus = async (trx: any) => {
-    if (trx.status === 'PAID') return;
+    if (trx.status === 'PAID' && trx.payload?.emailSentAt) return;
     
     isChecking.value = trx.id;
     try {
-        await axios.post(`${API_URL}/api/payment/check-status`, { external_id: trx.external_id });
+        const { data } = await axios.post(`${API_URL}/api/payment/check-status`, {
+            external_id: trx.external_id,
+        });
         await fetchHistory(); 
         
         const updated = transactions.value.find(t => t.id === trx.id);
-        const successMsg = isDarkMode.value ? "🩸 PACT SEALED. The ritual is complete." : "✅ LUNAS! Email dikirim.";
-        const pendingMsg = isDarkMode.value ? "⏳ The spirits are still waiting..." : "ℹ️ Masih PENDING. Cek lagi nanti.";
+        const successMsg = isDarkMode.value
+            ? "🩸 PACT SEALED. The ritual is complete."
+            : (data.message || "✅ LUNAS! Email dikirim.");
+        const pendingMsg = isDarkMode.value
+            ? "⏳ The spirits are still waiting..."
+            : "ℹ️ Masih PENDING. Cek lagi nanti.";
 
-        if (updated?.status === 'PAID') alert(successMsg);
+        if (data.status === 'PAID' || updated?.status === 'PAID') alert(successMsg);
         else alert(pendingMsg);
-    } catch (e) {
-        alert("Gagal cek status.");
+    } catch (e: any) {
+        const msg =
+            e.response?.data?.error ||
+            e.response?.data?.message ||
+            e.message ||
+            'Gagal cek status.';
+        alert(msg);
     } finally {
         isChecking.value = null;
     }
@@ -151,7 +162,7 @@ const getStatusLabel = (status: string) => {
                         </td>
                         <td class="p-4 text-right">
                             <div class="flex justify-end gap-2">
-                                <button v-if="trx.status === 'PENDING'" @click="checkStatus(trx)" :disabled="isChecking === trx.id" 
+                                <button v-if="trx.status === 'PENDING' || !trx.payload?.emailSentAt" @click="checkStatus(trx)" :disabled="isChecking === trx.id"
                                     :class="['text-[10px] px-3 py-1 border rounded transition hover:opacity-80', 
                                     isDarkMode ? 'bg-red-950 text-red-400 border-red-900 font-cinzel' : 'bg-slate-100 text-slate-600 hover:bg-slate-200']">
                                     {{ isChecking === trx.id ? '...' : (isDarkMode ? 'DIVINE STATUS' : '🔄 Cek') }}
