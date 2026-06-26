@@ -14,6 +14,31 @@ const isLoading = ref(false);
 const isChecking = ref<string | null>(null);
 const selectedTrx = ref<any | null>(null);
 const isDetailOpen = ref(false);
+const autoProcessed = new Set<string>();
+
+const needsFulfill = (trx: any) =>
+    trx.status === 'PENDING' || (trx.status === 'PAID' && !trx.payload?.emailSentAt);
+
+const autoFulfillPending = async () => {
+    const targets = transactions.value.filter(
+        (trx) => needsFulfill(trx) && !autoProcessed.has(trx.external_id)
+    );
+    if (!targets.length) return;
+
+    for (const trx of targets) {
+        autoProcessed.add(trx.external_id);
+        try {
+            await axios.post(`${API_URL}/api/payment/check-status`, {
+                external_id: trx.external_id,
+            });
+        } catch {
+            // Akan dicoba lagi saat user refresh / buka tab history
+            autoProcessed.delete(trx.external_id);
+        }
+    }
+
+    await fetchHistory();
+};
 
 const fetchHistory = async () => {
     if (!user.value?.id) return;
@@ -24,6 +49,7 @@ const fetchHistory = async () => {
             params: { user_id: user.value.id } 
         });
         transactions.value = data;
+        void autoFulfillPending();
     } catch (e) {
         console.error("Gagal load history", e);
     } finally {
@@ -162,7 +188,7 @@ const getStatusLabel = (status: string) => {
                         </td>
                         <td class="p-4 text-right">
                             <div class="flex justify-end gap-2">
-                                <button v-if="trx.status === 'PENDING' || !trx.payload?.emailSentAt" @click="checkStatus(trx)" :disabled="isChecking === trx.id"
+                                <button v-if="needsFulfill(trx)" @click="checkStatus(trx)" :disabled="isChecking === trx.id"
                                     :class="['text-[10px] px-3 py-1 border rounded transition hover:opacity-80', 
                                     isDarkMode ? 'bg-red-950 text-red-400 border-red-900 font-cinzel' : 'bg-slate-100 text-slate-600 hover:bg-slate-200']">
                                     {{ isChecking === trx.id ? '...' : (isDarkMode ? 'DIVINE STATUS' : '🔄 Cek') }}
